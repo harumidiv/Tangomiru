@@ -30,6 +30,10 @@ struct ComprehensionQuizView: View {
         }
         .task { model.start() }
         .onDisappear { model.cancel() }
+        // 正解は成功、不正解は失敗の振動
+        .sensoryFeedback(trigger: model.selectedIndex) { _, _ in
+            model.isCurrentCorrect.map { $0 ? .success : .error }
+        }
     }
 
     @ViewBuilder

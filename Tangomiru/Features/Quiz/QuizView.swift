@@ -33,6 +33,10 @@ struct QuizView: View {
                 }
             }
         }
+        // 正解は成功、不正解・時間切れ・SKIP は失敗の振動
+        .sensoryFeedback(trigger: feedback) { _, feedback in
+            feedback.map { $0.isCorrect ? .success : .error }
+        }
         .onDisappear { speaker.stop() }
         .task {
             guard session == nil else { return }
