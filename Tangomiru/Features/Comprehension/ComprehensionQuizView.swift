@@ -5,7 +5,7 @@ import UIKit
 struct ComprehensionQuizView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: ComprehensionQuizModel
-    @State private var isPassagePresented = false
+    private let sentences: [String]
 
     /// 抽出時に保存した問題があればそれを出し、無ければその場で作って保存する
     init(passage: Passage) {
@@ -20,6 +20,7 @@ struct ComprehensionQuizView: View {
     /// プレビューなどで問題の作り方を差し替えるため
     init(model: ComprehensionQuizModel) {
         _model = State(initialValue: model)
+        sentences = SentenceSplitter.sentences(in: model.passage)
     }
 
     var body: some View {
@@ -29,10 +30,6 @@ struct ComprehensionQuizView: View {
         }
         .task { model.start() }
         .onDisappear { model.cancel() }
-        .sheet(isPresented: $isPassagePresented) {
-            PassageSheet(passage: model.passage)
-                .presentationDetents([.medium, .large])
-        }
     }
 
     @ViewBuilder
@@ -69,37 +66,28 @@ struct ComprehensionQuizView: View {
             roundButton(systemImage: "xmark", label: "閉じる") { dismiss() }
             ProgressView(value: Double(model.index), total: Double(max(model.totalCount, 1)))
                 .tint(.orange)
-            roundButton(systemImage: "doc.text", label: "本文を見る") { isPassagePresented = true }
         }
         .padding(.top, 8)
     }
 
+    /// 本文を上に、問題と選択肢を下に並べ、問題を読んでから本文を読み直せるようにする
     private func questionView(_ question: ComprehensionQuestion) -> some View {
-        VStack(spacing: 16) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("\(model.index + 1) / \(model.totalCount)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text(question.question)
-                        .font(.title3.weight(.semibold))
-                    if model.selectedIndex != nil, let evidence = question.evidence {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("根拠").font(.caption.bold()).foregroundStyle(.secondary)
-                            Text(evidence).font(.callout).italic()
-                        }
-                        .padding(.top, 8)
-                        .transition(.opacity)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
-            }
-            .frame(maxHeight: .infinity)
-            .background(RoundedRectangle(cornerRadius: 20).fill(QuizPalette.surface))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(QuizPalette.border, lineWidth: 2))
+        VStack(spacing: 12) {
+            passagePane(highlighting: model.selectedIndex == nil
+                        ? nil
+                        : EvidenceLocator.sentenceIndex(of: question.evidence, in: sentences))
 
-            VStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(model.index + 1) / \(model.totalCount)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(question.question)
+                    .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(spacing: 10) {
                 ForEach(Array(question.choices.enumerated()), id: \.offset) { index, choice in
                     ChoiceButton(number: index + 1, text: choice, style: style(for: index, question: question)) {
                         withAnimation { model.answer(index) }
@@ -119,6 +107,37 @@ struct ComprehensionQuizView: View {
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
                 .tint(.orange)
+            }
+        }
+    }
+
+    /// 本文（文ごと）。解答後は根拠の文をハイライトして、その文までスクロールする
+    private func passagePane(highlighting highlighted: Int?) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(sentences.enumerated()), id: \.offset) { index, sentence in
+                        Text(sentence)
+                            .font(.body)
+                            .lineSpacing(4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(index == highlighted ? Color.green.opacity(0.25) : Color.clear)
+                            )
+                            .id(index)
+                    }
+                }
+                .padding(16)
+            }
+            .frame(maxHeight: .infinity)
+            .background(RoundedRectangle(cornerRadius: 20).fill(QuizPalette.surface))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(QuizPalette.border, lineWidth: 2))
+            .onChange(of: highlighted) { _, highlighted in
+                guard let highlighted else { return }
+                withAnimation { proxy.scrollTo(highlighted, anchor: .center) }
             }
         }
     }
@@ -178,24 +197,6 @@ private struct ComprehensionResultView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("完了", action: onClose)
             }
-        }
-    }
-}
-
-private struct PassageSheet: View {
-    let passage: String
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                Text(passage)
-                    .font(.body)
-                    .lineSpacing(6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-            }
-            .navigationTitle("本文")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
