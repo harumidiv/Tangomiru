@@ -8,6 +8,7 @@ struct ExtractionReviewView: View {
     let result: ExtractionResult
     let onSaved: () -> Void
     @State private var enabled: [Bool]
+    @State private var isSaved = false
 
     init(title: String, passageBody: String, result: ExtractionResult, onSaved: @escaping () -> Void) {
         self.title = title
@@ -47,12 +48,15 @@ struct ExtractionReviewView: View {
         .navigationTitle("抽出結果")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存", action: save).disabled(result.items.isEmpty)
+                Button("保存", action: save).disabled(result.items.isEmpty || isSaved)
             }
         }
     }
 
     private func save() {
+        // 二度押しで同じ英文が2件保存されないようにする
+        guard !isSaved else { return }
+        isSaved = true
         let passage = Passage(title: title, body: passageBody, usedAI: result.usedAI)
         modelContext.insert(passage)
         passage.items = zip(result.items, enabled).map { VocabItem(extracted: $0, isEnabled: $1) }

@@ -7,6 +7,7 @@ struct PassageInputView: View {
     @State private var bodyText = ""
     @State private var isExtracting = false
     @State private var result: ExtractionResult?
+    @State private var extractionTask: Task<Void, Never>?
 
     private var problem: PassageInput.Problem? { PassageInput.validate(bodyText) }
 
@@ -39,13 +40,17 @@ struct PassageInputView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
+                    Button("キャンセル") {
+                        extractionTask?.cancel()
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("抽出") { Task { await extract() } }
+                    Button("抽出", action: startExtraction)
                         .disabled(problem != nil || isExtracting || !services.status.isReady)
                 }
             }
+            .onDisappear { extractionTask?.cancel() }
             .navigationDestination(item: $result) { result in
                 ExtractionReviewView(
                     title: PassageInput.title(title, body: bodyText),
@@ -73,10 +78,16 @@ struct PassageInputView: View {
         }
     }
 
-    private func extract() async {
-        guard let pipeline = services.makePipeline() else { return }
+    /// 二度押しで2回走らないよう、isExtracting はタップと同時に立てる
+    private func startExtraction() {
+        guard !isExtracting, let pipeline = services.makePipeline() else { return }
         isExtracting = true
-        result = await pipeline.run(bodyText)
-        isExtracting = false
+        let body = bodyText
+        extractionTask = Task {
+            let extracted = await pipeline.run(body)
+            isExtracting = false
+            guard !Task.isCancelled else { return }
+            result = extracted
+        }
     }
 }

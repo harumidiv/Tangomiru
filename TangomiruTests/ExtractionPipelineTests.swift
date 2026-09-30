@@ -93,6 +93,21 @@ struct ExtractionPipelineTests {
         #expect(result.items[1].meaning == "abyssの辞書訳")
     }
 
+    @Test func cancelledRunSkipsAIEnrichment() async {
+        let recorder = CallRecorder()
+        let enricher = FakeEnricher { inputs, _ in
+            recorder.record(inputs.map(\.term))
+            return Self.aiOutput(for: inputs)
+        }
+        let pipeline = pipeline(enricher)
+        let task = Task { await pipeline.run(Self.body) }
+        task.cancel()
+        let result = await task.value
+        #expect(recorder.calls.isEmpty)
+        #expect(!result.usedAI)
+        #expect(result.items.count == 20)
+    }
+
     @Test func emptyTextGivesNoItems() async {
         let result = await pipeline(FakeEnricher { inputs, _ in Self.aiOutput(for: inputs) }).run("the a an")
         #expect(result.items.isEmpty)

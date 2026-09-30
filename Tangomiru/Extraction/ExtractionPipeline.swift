@@ -31,6 +31,8 @@ nonisolated struct ExtractionPipeline: Sendable {
         var usedAI = false
         var idioms: [EnrichedEntry] = []
         for start in stride(from: 0, to: items.count, by: Self.chunkSize) {
+            // キャンセルされたら残りのチャンクは AI に投げず、辞書の結果で返す
+            if Task.isCancelled { break }
             let range = start..<min(start + Self.chunkSize, items.count)
             let inputs = items[range].map {
                 EnrichmentInput(term: $0.term, contextSentence: $0.contextSentence, dictionaryMeaning: $0.meaning)
