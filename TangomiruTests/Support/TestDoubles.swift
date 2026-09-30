@@ -86,3 +86,12 @@ nonisolated struct FakeSentenceAnalyzer: SentenceAnalyzer {
         try handler(sentence)
     }
 }
+
+nonisolated struct FakeComprehensionGenerator: ComprehensionQuestionGenerator {
+    var isAvailable = true
+    let handler: @Sendable (String, Int) throws -> [ComprehensionQuestion]
+
+    func generate(from passage: String, count: Int) async throws -> [ComprehensionQuestion] {
+        try handler(passage, count)
+    }
+}
