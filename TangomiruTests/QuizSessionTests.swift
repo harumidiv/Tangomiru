@@ -70,6 +70,34 @@ struct QuizSessionTests {
         #expect(s.isFinished)
     }
 
+    @Test func skipCountsAsWrongAnswer() {
+        let cards = (0..<5).map { makeCard("t\($0)", score: 1) }
+        var s = session(cards)
+        let first = s.current!.card
+        let feedback = s.skip()
+        #expect(feedback == AnswerFeedback(isCorrect: false, correctAnswer: first.meaning))
+        #expect(s.changes == [ScoreChange(cardID: first.id, term: first.term, before: 1, after: 0)])
+        #expect(s.totalCount == 6)
+    }
+
+    @Test func skipAfterAnswerIsIgnored() {
+        var s = session([makeCard("a", score: nil)])
+        s.answer("aの意味")
+        let feedback = s.skip()
+        #expect(feedback.isCorrect)
+        #expect(s.changes.map(\.after) == [1])
+        #expect(s.totalCount == 1)
+    }
+
+    @Test func progressCountsAnsweredQuestions() {
+        var s = session((0..<4).map { makeCard("t\($0)", score: nil) })
+        #expect(s.progress == 0)
+        s.answer(s.current!.card.meaning)
+        #expect(s.progress == 0.25)
+        s.advance()
+        #expect(s.progress == 0.25)
+    }
+
     @Test func emptyCardsFinishImmediately() {
         let s = session([])
         #expect(s.isFinished)

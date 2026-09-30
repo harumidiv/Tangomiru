@@ -64,12 +64,28 @@ nonisolated struct QuizSession: Sendable {
     var totalCount: Int { queue.count }
     var isFinished: Bool { current == nil }
 
+    /// 解答済みの割合（0〜1）。いま表示中の問題は解答した時点で数える
+    var progress: Double {
+        guard totalCount > 0 else { return 1 }
+        return Double(position + (lastFeedback == nil ? 0 : 1)) / Double(totalCount)
+    }
+
     @discardableResult
     mutating func answer(_ choice: String) -> AnswerFeedback {
+        guard let current else { return AnswerFeedback(isCorrect: false, correctAnswer: "") }
+        return record(isCorrect: choice == current.card.meaning)
+    }
+
+    /// 「わからない」として不正解と同じ扱いにする（スコア −1、3問後に再出題）
+    @discardableResult
+    mutating func skip() -> AnswerFeedback {
         guard current != nil else { return AnswerFeedback(isCorrect: false, correctAnswer: "") }
+        return record(isCorrect: false)
+    }
+
+    private mutating func record(isCorrect: Bool) -> AnswerFeedback {
         if let lastFeedback { return lastFeedback }
         let entry = queue[position]
-        let isCorrect = choice == entry.card.meaning
         if !entry.isRetry {
             let after = ScoreRule.apply(score: entry.card.score, correct: isCorrect)
             changes.append(ScoreChange(cardID: entry.card.id, term: entry.card.term, before: entry.card.score, after: after))
