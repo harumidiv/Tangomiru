@@ -2,6 +2,7 @@ import SwiftUI
 
 struct QuizResultView: View {
     let session: QuizSession
+    let onReview: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -14,6 +15,19 @@ struct QuizResultView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
             }
+            if !session.wrongCards.isEmpty {
+                Section {
+                    Button("間違えた\(session.wrongCards.count)問を復習する", systemImage: "arrow.counterclockwise", action: onReview)
+                        .font(.headline)
+                } footer: {
+                    Text("復習ではスコアは変わりません")
+                }
+                Section("間違えた語") {
+                    ForEach(session.wrongCards) { card in
+                        VocabLabel(term: card.term, meaning: card.meaning, state: nil)
+                    }
+                }
+            }
             if !promoted.isEmpty {
                 Section("上がった語") {
                     ForEach(promoted, id: \.cardID) { ChangeRow(change: $0) }
@@ -25,7 +39,7 @@ struct QuizResultView: View {
                 }
             }
         }
-        .navigationTitle("結果")
+        .navigationTitle(session.isReview ? "復習の結果" : "結果")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("完了", action: onClose)

@@ -12,6 +12,8 @@ struct QuizView: View {
     @State private var isCommitted = false
     /// 制限時間の残り割合（1 → 0）
     @State private var remaining = 1.0
+    /// 復習の回を始めるたびに増やし、タイマーを確実にリセットする
+    @State private var round = 0
 
     var body: some View {
         NavigationStack {
@@ -20,10 +22,10 @@ struct QuizView: View {
                     if let question = session.current {
                         questionView(question, session: session)
                             .toolbar(.hidden, for: .navigationBar)
-                            .task(id: session.position) { await runCountdown() }
+                            .task(id: "\(round)-\(session.position)") { await runCountdown() }
                             .task(id: feedback) { await advanceAfterReveal() }
                     } else {
-                        QuizResultView(session: session) { dismiss() }
+                        QuizResultView(session: session, onReview: startReview) { dismiss() }
                     }
                 } else {
                     ProgressView()
@@ -110,8 +112,8 @@ struct QuizView: View {
                         Text("\(session.position + 1) / \(session.totalCount)")
                             .font(.title3)
                             .foregroundStyle(.secondary)
-                        if question.isRetry {
-                            Text("もう一度").font(.caption.bold()).foregroundStyle(.orange)
+                        if session.isReview {
+                            Text("復習").font(.caption.bold()).foregroundStyle(.orange)
                         }
                     }
                     .fixedSize()
@@ -171,6 +173,20 @@ struct QuizView: View {
         next()
     }
 
+    /// 間違えた語だけで復習の回を始める（スコアは変えない）
+    private func startReview() {
+        guard let finished = session, !finished.wrongCards.isEmpty else { return }
+        commit()
+        feedback = nil
+        selectedChoice = nil
+        round += 1
+        session = QuizSession(
+            reviewing: finished.wrongCards,
+            passageMeanings: passage.items.map(\.meaning),
+            fallbackMeanings: services.fallbackMeanings()
+        )
+    }
+
     private func next() {
         session?.advance()
         feedback = nil
@@ -180,7 +196,7 @@ struct QuizView: View {
 
     /// 解答済みの分のスコアを保存する（途中で閉じた場合も反映）
     private func commit() {
-        guard !isCommitted, let session, !session.changes.isEmpty else { return }
+        guard !isCommitted, let session, !session.isReview, !session.changes.isEmpty else { return }
         passage.applyQuizResult(session.changes)
         isCommitted = true
     }
@@ -235,7 +251,7 @@ private struct ChoiceButton: View {
         .buttonStyle(.plain)
     }
 
-    /// 解答前は番号、解答後は正解の番号を ○ で囲み、選んだ不正解は × にする
+    /// 解答前は番号、解答後は正解を ○、選んだ不正解を × にする（番号は隠す）
     @ViewBuilder
     private var marker: some View {
         switch style {
@@ -244,12 +260,10 @@ private struct ChoiceButton: View {
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.tertiary)
         case .correct:
-            Text("\(number)")
-                .font(.title3.weight(.bold))
+            Image(systemName: "circle")
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.green)
-                .frame(width: 34, height: 34)
-                .overlay(Circle().stroke(.green, lineWidth: 3))
-                .accessibilityLabel("正解 \(number)")
+                .accessibilityLabel("正解")
         case .wrong:
             Image(systemName: "xmark")
                 .font(.title2.weight(.bold))

@@ -7,6 +7,17 @@ struct QuizSessionTests {
         QuizSession(cards: cards, length: length, fallbackMeanings: ["空", "海", "山"], rng: SeededRandom(seed: 7))
     }
 
+    /// 出題順に全問解く。wrongTerms に含まれる語だけ間違える
+    private func answerAll(_ s: inout QuizSession, wrong wrongTerms: Set<String> = []) -> [QuizQuestion] {
+        var seen: [QuizQuestion] = []
+        while let question = s.current {
+            seen.append(question)
+            s.answer(wrongTerms.contains(question.card.term) ? "wrong" : question.card.meaning)
+            s.advance()
+        }
+        return seen
+    }
+
     @Test func correctFirstAnswerRaisesScore() {
         let card = makeCard("a", score: nil)
         var s = session([card])
@@ -18,45 +29,38 @@ struct QuizSessionTests {
         #expect(s.correctCount == 1)
     }
 
-    @Test func wrongAnswerSchedulesRetryThreeQuestionsLater() {
-        let cards = (0..<6).map { makeCard("t\($0)", score: 1) }
-        var s = session(cards)
-        let first = s.current!.card
-        s.answer("wrong")
-        s.advance()
-        var seen: [QuizQuestion] = []
-        while let question = s.current {
-            seen.append(question)
-            s.answer(question.card.meaning)
-            s.advance()
-        }
+    @Test func wrongAnswersDoNotAddQuestions() {
+        var s = session((0..<6).map { makeCard("t\($0)", score: 1) })
+        let seen = answerAll(&s, wrong: ["t0", "t3"])
         #expect(seen.count == 6)
-        #expect(seen[3].card.id == first.id)
-        #expect(seen[3].isRetry)
-        #expect(s.totalCount == 7)
+        #expect(s.totalCount == 6)
+        #expect(Set(seen.map(\.card.id)).count == 6)
     }
 
-    @Test func retryDoesNotChangeScore() {
-        var s = session([makeCard("a", score: 2)])
-        s.answer("wrong")
-        s.advance()
-        #expect(s.current?.isRetry == true)
-        s.answer("aの意味")
-        s.advance()
-        #expect(s.isFinished)
-        #expect(s.changes.map(\.after) == [1])
-        #expect(s.correctCount == 0)
+    @Test func wrongCardsListsMissedCardsInOrder() {
+        var s = session((0..<5).map { makeCard("t\($0)", score: nil) })
+        let seen = answerAll(&s, wrong: ["t1", "t4"])
+        let expected = seen.map(\.card).filter { ["t1", "t4"].contains($0.term) }
+        #expect(s.wrongCards == expected)
+        #expect(s.correctCount == 3)
     }
 
-    @Test func retryNearEndIsAppended() {
-        var s = session([makeCard("a", score: nil), makeCard("b", score: nil)])
-        let firstTerm = s.current!.card.term
-        s.answer("\(firstTerm)の意味")
-        s.advance()
-        s.answer("wrong")
-        s.advance()
-        #expect(s.current?.isRetry == true)
-        #expect(s.totalCount == 3)
+    @Test func reviewSessionAsksMissedCardsWithoutChangingScores() {
+        let cards = (0..<5).map { makeCard("t\($0)", score: 1) }
+        var first = session(cards)
+        _ = answerAll(&first, wrong: ["t2"])
+        var review = QuizSession(
+            reviewing: first.wrongCards, passageMeanings: cards.map(\.meaning),
+            fallbackMeanings: [], rng: SeededRandom(seed: 1)
+        )
+        #expect(review.isReview)
+        #expect(review.questionCount == 1)
+        #expect(review.current?.choices.count == 4)
+        review.answer("wrong")
+        review.advance()
+        #expect(review.isFinished)
+        #expect(review.changes.isEmpty)
+        #expect(review.wrongCards.map(\.term) == ["t2"])
     }
 
     @Test func answeringTwiceCountsOnce() {
@@ -66,6 +70,7 @@ struct QuizSessionTests {
         #expect(second.isCorrect)
         #expect(s.changes.count == 1)
         #expect(s.changes[0].after == 1)
+        #expect(s.wrongCards.isEmpty)
         s.advance()
         #expect(s.isFinished)
     }
@@ -77,7 +82,8 @@ struct QuizSessionTests {
         let feedback = s.skip()
         #expect(feedback == AnswerFeedback(isCorrect: false, correctAnswer: first.meaning))
         #expect(s.changes == [ScoreChange(cardID: first.id, term: first.term, before: 1, after: 0)])
-        #expect(s.totalCount == 6)
+        #expect(s.wrongCards == [first])
+        #expect(s.totalCount == 5)
     }
 
     @Test func skipAfterAnswerIsIgnored() {
@@ -86,16 +92,6 @@ struct QuizSessionTests {
         let feedback = s.skip()
         #expect(feedback.isCorrect)
         #expect(s.changes.map(\.after) == [1])
-        #expect(s.totalCount == 1)
-    }
-
-    @Test func progressCountsAnsweredQuestions() {
-        var s = session((0..<4).map { makeCard("t\($0)", score: nil) })
-        #expect(s.progress == 0)
-        s.answer(s.current!.card.meaning)
-        #expect(s.progress == 0.25)
-        s.advance()
-        #expect(s.progress == 0.25)
     }
 
     @Test func emptyCardsFinishImmediately() {
