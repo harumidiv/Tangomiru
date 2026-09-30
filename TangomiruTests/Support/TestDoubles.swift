@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 @testable import Tangomiru
 
 nonisolated struct FakeDictionary: WordDictionary {
@@ -44,4 +45,25 @@ nonisolated func tokenized(_ specs: [String], sentences: [String] = ["context"])
         afterBreak = false
     }
     return TokenizedText(tokens: tokens, sentences: sentences)
+}
+
+nonisolated struct FakeError: Error {}
+
+nonisolated struct FakeEnricher: VocabEnricher {
+    var isAvailable = true
+    let handler: @Sendable ([EnrichmentInput], [String]) throws -> EnrichmentOutput
+
+    func enrich(_ inputs: [EnrichmentInput], sentences: [String]) async throws -> EnrichmentOutput {
+        try handler(inputs, sentences)
+    }
+}
+
+nonisolated final class CallRecorder: Sendable {
+    private let storage = Mutex<[[String]]>([])
+
+    func record(_ terms: [String]) {
+        storage.withLock { $0.append(terms) }
+    }
+
+    var calls: [[String]] { storage.withLock { $0 } }
 }
