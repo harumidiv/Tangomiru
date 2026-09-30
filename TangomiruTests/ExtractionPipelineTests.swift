@@ -45,6 +45,24 @@ struct ExtractionPipelineTests {
         #expect(result.items[0].source == .dictionary)
     }
 
+    @Test func simplifiesAIMeaningsAndDistractors() async {
+        let enricher = FakeEnricher { inputs, _ in
+            EnrichmentOutput(
+                words: inputs.map {
+                    EnrichedEntry(term: $0.term, meaning: "深淵（しんえん）、奈落", distractors: ["頂上（てっぺん）", "海底", "（補足）平原"])
+                },
+                idioms: [EnrichedEntry(term: "I saw", meaning: "私は見た（過去形）", distractors: ["聞いた、耳にした"])]
+            )
+        }
+        let result = await pipeline(enricher).run(Self.body)
+        let abyss = result.items.first { $0.term == "abyss" }
+        #expect(abyss?.meaning == "深淵")
+        #expect(abyss?.distractors == ["頂上", "海底", "平原"])
+        let idiom = result.items.first { $0.source == .ai }
+        #expect(idiom?.meaning == "私は見た")
+        #expect(idiom?.distractors == ["聞いた"])
+    }
+
     @Test func splitsIntoChunksOfFifteen() async {
         let recorder = CallRecorder()
         let enricher = FakeEnricher { inputs, sentences in

@@ -5,9 +5,9 @@ import FoundationModels
 nonisolated struct GeneratedEntry: Sendable {
     @Guide(description: "英語の見出し語。入力された語はそのままの綴り、熟語は例文に出てくる形そのまま")
     var term: String
-    @Guide(description: "例文の文脈に合った簡潔な日本語訳（20文字以内）")
+    @Guide(description: "例文で使われている意味を1つだけ。括弧や補足は付けない15文字以内の日本語")
     var meaning: String
-    @Guide(description: "正解と紛らわしいが意味が異なる日本語の誤答", .count(3))
+    @Guide(description: "正解と紛らわしいが意味が異なる日本語の誤答。正解と同じく括弧や補足の無い短い語", .count(3))
     var distractors: [String]
 }
 
@@ -22,7 +22,8 @@ nonisolated struct GeneratedEnrichment: Sendable {
 nonisolated struct FoundationModelsEnricher: VocabEnricher {
     static let instructions = """
     あなたは日本人の英語学習者のための英和辞書編集者です。
-    与えられた英語の語が例文の中でどの意味で使われているかを判断し、簡潔な日本語訳を付けてください。
+    与えられた英語の語が例文の中でどの意味で使われているかを判断し、その意味を1つだけ日本語で答えてください。
+    訳には括弧や補足説明を付けず、複数の訳を並べないでください。
     4択クイズ用に、正解と紛らわしいが意味の異なる日本語の誤答を3つ作ってください。
     例文に含まれる熟語・句動詞で入力に無いものがあれば、例文に出てくる形のまま追加してください。
     """

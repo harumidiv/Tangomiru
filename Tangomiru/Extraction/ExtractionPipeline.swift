@@ -63,7 +63,7 @@ nonisolated struct ExtractionPipeline: Sendable {
 
     static func apply(_ entries: [EnrichedEntry], to item: inout ExtractedItem) {
         guard let entry = entries.first(where: { $0.term.lowercased() == item.term.lowercased() }) else { return }
-        let meaning = entry.meaning.trimmingCharacters(in: .whitespacesAndNewlines)
+        let meaning = MeaningFormatter.single(entry.meaning)
         if !meaning.isEmpty { item.meaning = meaning }
         item.distractors = cleanedDistractors(entry.distractors, excluding: item.meaning)
     }
@@ -71,7 +71,8 @@ nonisolated struct ExtractionPipeline: Sendable {
     static func cleanedDistractors(_ raw: [String], excluding meaning: String) -> [String] {
         var result: [String] = []
         for distractor in raw {
-            let trimmed = distractor.trimmingCharacters(in: .whitespacesAndNewlines)
+            // 正解と見た目を揃えるため、誤答も補足を除いた1語にする
+            let trimmed = MeaningFormatter.single(distractor)
             if !trimmed.isEmpty && trimmed != meaning && !result.contains(trimmed) {
                 result.append(trimmed)
             }
@@ -87,7 +88,7 @@ nonisolated struct ExtractionPipeline: Sendable {
         var result: [ExtractedItem] = []
         for idiom in idioms {
             let term = idiom.term.trimmingCharacters(in: .whitespacesAndNewlines)
-            let meaning = idiom.meaning.trimmingCharacters(in: .whitespacesAndNewlines)
+            let meaning = MeaningFormatter.single(idiom.meaning)
             let key = term.lowercased()
             guard term.contains(" "), !meaning.isEmpty, !seen.contains(key) else { continue }
             let spans = TextSearch.occurrences(of: term, in: body)
