@@ -92,12 +92,24 @@ struct ReadingView: View {
 
 private struct ItemDetailSheet: View {
     let item: VocabItem
+    @State private var speaker = WordSpeaker()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(item.term).font(.title2.bold())
                 MasteryBadge(state: item.state)
+                Spacer()
+                Button {
+                    speaker.speak(item.term)
+                } label: {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.title3)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .accessibilityLabel("\(item.term) を読み上げる")
             }
             Text(item.meaning).font(.body)
             Text(item.contextSentence).font(.callout).foregroundStyle(.secondary)
@@ -105,5 +117,6 @@ private struct ItemDetailSheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
+        .onDisappear { speaker.stop() }
     }
 }
