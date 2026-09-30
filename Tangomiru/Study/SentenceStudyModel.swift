@@ -1,7 +1,8 @@
 import Foundation
 import Observation
 
-/// 1文ずつ学ぶ画面の進行。表示中の文と次の文の解説を先に作っておき、待ち時間を減らす
+/// 1文ずつ学ぶ画面の進行。英文と確認問題を先に出し、答えたら和訳と解説を見せる。
+/// 表示中の文と次の文の解説を先に作っておき、待ち時間を減らす
 @Observable
 final class SentenceStudyModel {
     enum LoadState: Equatable {
@@ -13,7 +14,7 @@ final class SentenceStudyModel {
     let sentences: [String]
     private let analyzer: any SentenceAnalyzer
     private(set) var index = 0
-    /// 「和訳と解説を見る」を押したか
+    /// 和訳と解説を表示しているか（確認問題に答えるか、問題が無いときに「和訳と解説を見る」を押すと true）
     private(set) var isRevealed = false
     private(set) var selectedQuizIndex: Int?
     private var states: [Int: LoadState] = [:]
@@ -46,9 +47,11 @@ final class SentenceStudyModel {
         isRevealed = true
     }
 
+    /// 確認問題に答えると和訳と解説を表示する
     func answerQuiz(_ choiceIndex: Int) {
         guard selectedQuizIndex == nil else { return }
         selectedQuizIndex = choiceIndex
+        isRevealed = true
     }
 
     func next() {

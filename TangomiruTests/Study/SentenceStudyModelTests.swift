@@ -60,6 +60,16 @@ struct SentenceStudyModelTests {
         #expect(model.isQuizCorrect == true)
     }
 
+    @Test func answeringQuizRevealsExplanation() async {
+        let model = model()
+        model.start()
+        await settle(model)
+        #expect(!model.isRevealed)
+        model.answerQuiz(1)
+        #expect(model.isRevealed)
+        #expect(model.isQuizCorrect == false)
+    }
+
     @Test func failureCanBeRetried() async {
         let recorder = CallRecorder()
         let model = SentenceStudyModel(sentences: Self.sentences, analyzer: FakeSentenceAnalyzer { sentence in
