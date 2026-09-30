@@ -15,6 +15,13 @@ struct PassageInputView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink {
+                        EnglishSourcesView()
+                    } label: {
+                        Label("英文を探す（英語ニュースのサイト）", systemImage: "globe")
+                    }
+                }
                 Section("タイトル（省略可）") {
                     TextField("例: ニュース記事", text: $title)
                 }

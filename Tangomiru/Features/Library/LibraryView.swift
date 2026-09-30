@@ -6,6 +6,7 @@ struct LibraryView: View {
     @Query(sort: \Passage.createdAt, order: .reverse) private var passages: [Passage]
     @Environment(AppServices.self) private var services
     @State private var isAddingPassage = false
+    @State private var isBrowsingSources = false
 
     var body: some View {
         NavigationStack {
@@ -23,7 +24,7 @@ struct LibraryView: View {
                 if passages.isEmpty {
                     ContentUnavailableView(
                         "英文がありません", systemImage: "text.book.closed",
-                        description: Text("右上の＋から英文を貼り付けて始めましょう")
+                        description: Text("右上の＋から英文を貼り付けて始めましょう。地球のボタンから英語ニュースのサイトを探せます")
                     )
                 }
             }
@@ -38,11 +39,17 @@ struct LibraryView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
+                    Button("英文を探す", systemImage: "globe") { isBrowsingSources = true }
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Button("英文を追加", systemImage: "plus") { isAddingPassage = true }
                 }
             }
             .sheet(isPresented: $isAddingPassage) {
                 PassageInputView()
+            }
+            .sheet(isPresented: $isBrowsingSources) {
+                NavigationStack { EnglishSourcesView() }
             }
             .task(id: services.status.isReady) {
                 if services.status.isReady { services.migrateMeanings(of: passages) }
