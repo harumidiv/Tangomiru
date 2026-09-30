@@ -47,6 +47,11 @@ struct PassageDetailView: View {
             }
             Section {
                 NavigationLink {
+                    ReadingView(passage: passage)
+                } label: {
+                    Label("読解モード", systemImage: "text.viewfinder")
+                }
+                NavigationLink {
                     ItemListView(passage: passage)
                 } label: {
                     Label("単語一覧（\(passage.items.count)語）", systemImage: "list.bullet")
