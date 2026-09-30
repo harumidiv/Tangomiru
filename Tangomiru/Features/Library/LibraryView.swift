@@ -27,6 +27,9 @@ struct LibraryView: View {
                 }
             }
             .navigationTitle("Tangomiru")
+            .navigationDestination(for: Passage.self) { passage in
+                PassageDetailView(passage: passage)
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button("英文を追加", systemImage: "plus") { isAddingPassage = true }
