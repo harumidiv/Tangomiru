@@ -89,8 +89,15 @@ final class SentenceStudyModel {
         tasks[index] = Task { [weak self] in
             let state: LoadState
             do {
-                let raw = try await analyzer.analyze(sentence)
-                state = SentenceAnalysisValidator.validated(raw, sentence: sentence).map(LoadState.loaded) ?? .failed
+                var analysis = SentenceAnalysisValidator.validated(try await analyzer.analyze(sentence), sentence: sentence)
+                // 確認問題だけ壊れていたら1回作り直す。作り直しても駄目なら最初の解説を使う
+                if analysis != nil, analysis?.quiz == nil,
+                   let retried = try? await analyzer.analyze(sentence),
+                   let validRetry = SentenceAnalysisValidator.validated(retried, sentence: sentence),
+                   validRetry.quiz != nil {
+                    analysis = validRetry
+                }
+                state = analysis.map(LoadState.loaded) ?? .failed
             } catch {
                 state = .failed
             }

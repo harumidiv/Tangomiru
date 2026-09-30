@@ -88,6 +88,23 @@ struct ComprehensionQuizModelTests {
         #expect(model.questions.count == 4)
     }
 
+    @Test func regeneratesMissingQuestionsOncePerChunk() async {
+        let recorder = CallRecorder()
+        let model = ComprehensionQuizModel(passage: Self.passage, maxChunkLength: 1_000, generator: FakeComprehensionGenerator { chunk, count in
+            recorder.record(["\(count)"])
+            // 1回目は1問だけ壊れていない問題を返し、2回目で残りを返す
+            if recorder.calls.count == 1 {
+                return [Self.questions(count: 1, tag: "first")[0],
+                        ComprehensionQuestion(question: "壊れた", choices: ["a"], answerIndex: 0, evidence: nil)]
+            }
+            return Self.questions(count: count, tag: "retry")
+        })
+        model.start()
+        await model.generationTask?.value
+        #expect(recorder.calls == [["4"], ["3"]])
+        #expect(model.questions.count == 4)
+    }
+
     @Test func invalidQuestionsAreDropped() async {
         let model = ComprehensionQuizModel(passage: Self.passage, maxChunkLength: 1_000, generator: FakeComprehensionGenerator { _, _ in
             [ComprehensionQuestion(question: "q", choices: ["a"], answerIndex: 0, evidence: nil)]

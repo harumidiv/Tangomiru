@@ -4,6 +4,8 @@ import Observation
 /// 内容理解クイズの進行。最初のチャンクの問題ができたら出題を始め、残りは解いている間に作る
 @Observable
 final class ComprehensionQuizModel {
+    static let attemptsPerChunk = 2
+
     let passage: String
     let plannedCount: Int
     private let chunks: [String]
@@ -80,14 +82,20 @@ final class ComprehensionQuizModel {
         let passage = passage
         generationTask = Task { [weak self] in
             for (chunk, count) in plan where count > 0 {
-                if Task.isCancelled { break }
-                do {
-                    let generated = try await generator.generate(from: chunk, count: count)
-                    let valid = generated.compactMap { ComprehensionValidator.validated($0, passage: passage) }
-                    self?.questions += valid.prefix(count)
-                } catch {
-                    // このチャンクの問題は作れなかったので、残りのチャンクで続ける
-                    continue
+                var remaining = count
+                // 壊れた問題を捨てて足りなくなったら、足りない分だけ1回作り直す
+                for _ in 0..<Self.attemptsPerChunk where remaining > 0 {
+                    if Task.isCancelled { break }
+                    do {
+                        let generated = try await generator.generate(from: chunk, count: remaining)
+                        let valid = generated.compactMap { ComprehensionValidator.validated($0, passage: passage) }
+                            .prefix(remaining)
+                        self?.questions += valid
+                        remaining -= valid.count
+                    } catch {
+                        // このチャンクの問題は作れなかったので、残りのチャンクで続ける
+                        break
+                    }
                 }
             }
             self?.isGenerating = false

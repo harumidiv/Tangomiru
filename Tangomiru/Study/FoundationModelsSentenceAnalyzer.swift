@@ -21,10 +21,10 @@ nonisolated struct GeneratedGrammarPoint: Sendable {
 nonisolated struct GeneratedGrammarQuiz: Sendable {
     @Guide(description: "この文の文法ポイントを確かめる日本語の問題文")
     var question: String
-    @Guide(description: "選択肢。1つだけが正解で、残りはもっともらしい誤り", .count(4))
-    var choices: [String]
-    @Guide(description: "正解の選択肢の番号（0から3）", .range(0...3))
-    var answerIndex: Int
+    @Guide(description: "問題の正しい答え。日本語で短く書く")
+    var correctAnswer: String
+    @Guide(description: "もっともらしいが誤りの答え。正しい答えとも互いにも違う内容にする", .count(3))
+    var wrongAnswers: [String]
 }
 
 @Generable
@@ -55,12 +55,18 @@ nonisolated struct FoundationModelsSentenceAnalyzer: SentenceAnalyzer {
             to: Self.prompt(for: sentence),
             generating: GeneratedSentenceAnalysis.self
         ).content
+        var rng = SeededRandom()
         return SentenceAnalysis(
             translation: content.translation,
             parts: content.parts.map { SentencePart(role: $0.role, text: $0.text) },
             points: content.points.map { GrammarPoint(title: $0.title, explanation: $0.explanation) },
-            quiz: GrammarQuiz(question: content.quiz.question, choices: content.quiz.choices, answerIndex: content.quiz.answerIndex)
+            quiz: Self.quiz(question: content.quiz.question, correct: content.quiz.correctAnswer, wrong: content.quiz.wrongAnswers, using: &rng)
         )
+    }
+
+    static func quiz(question: String, correct: String, wrong: [String], using rng: inout SeededRandom) -> GrammarQuiz {
+        let (choices, answerIndex) = MultipleChoice.shuffled(correct: correct, wrong: wrong, using: &rng)
+        return GrammarQuiz(question: question, choices: choices, answerIndex: answerIndex)
     }
 
     static func prompt(for sentence: String) -> String {

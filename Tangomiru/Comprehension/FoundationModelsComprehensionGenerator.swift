@@ -3,13 +3,13 @@ import FoundationModels
 
 @Generable
 nonisolated struct GeneratedComprehensionQuestion: Sendable {
-    @Guide(description: "本文の内容についての日本語の問題文")
+    @Guide(description: "本文の内容について尋ねる日本語の問題文。英文を書き写さず、日本語の疑問文にする（例: 停電のあと人々はどうしましたか？）")
     var question: String
-    @Guide(description: "日本語の選択肢。本文に基づく正解が1つだけで、残りは本文と食い違うもっともらしい誤り", .count(4))
-    var choices: [String]
-    @Guide(description: "正解の選択肢の番号（0から3）", .range(0...3))
-    var answerIndex: Int
-    @Guide(description: "正解の根拠となる本文中の英文。本文からそのまま抜き出す")
+    @Guide(description: "本文の内容だけから分かる正しい答え。日本語で短く書く")
+    var correctAnswer: String
+    @Guide(description: "本文の内容と食い違う、もっともらしい誤りの答え。日本語で短く書き、正しい答えとも互いにも違う内容にする", .count(3))
+    var wrongAnswers: [String]
+    @Guide(description: "正しい答えの根拠となる本文中の英文1文。本文からそのまま抜き出す")
     var evidence: String
 }
 
@@ -23,8 +23,15 @@ nonisolated struct FoundationModelsComprehensionGenerator: ComprehensionQuestion
     static let instructions = """
     あなたは日本人の英語学習者向けに、英文読解の確認問題を作る先生です。
     与えられた英文の本文を読み、内容をきちんと理解できたかを確かめる日本語の4択問題を作ってください。
-    正解は必ず本文の内容だけから判断できるものにし、本文に書かれていないことを正解にしないでください。
+    問題文と選択肢は必ず日本語で書き、本文の英文をそのまま書き写してはいけません。
+    正しい答えは本文の内容だけから判断できるものにし、誤りの答え3つは正しい答えとも互いにも違う内容にしてください。
     問題はそれぞれ本文の違う部分について作ってください。
+    例:
+    本文: Tom missed the bus, so he walked to school.
+    問題: トムはどうやって学校へ行きましたか？
+    正しい答え: 歩いて行った
+    誤りの答え: バスで行った / 自転車で行った / 車で送ってもらった
+    根拠: Tom missed the bus, so he walked to school.
     """
 
     var isAvailable: Bool { SystemLanguageModel.default.isAvailable }
@@ -35,9 +42,15 @@ nonisolated struct FoundationModelsComprehensionGenerator: ComprehensionQuestion
             to: Self.prompt(passage: passage, count: count),
             generating: GeneratedComprehensionSet.self
         ).content
+        var rng = SeededRandom()
         return content.questions.map {
-            ComprehensionQuestion(question: $0.question, choices: $0.choices, answerIndex: $0.answerIndex, evidence: $0.evidence)
+            Self.question(text: $0.question, correct: $0.correctAnswer, wrong: $0.wrongAnswers, evidence: $0.evidence, using: &rng)
         }
+    }
+
+    static func question(text: String, correct: String, wrong: [String], evidence: String, using rng: inout SeededRandom) -> ComprehensionQuestion {
+        let (choices, answerIndex) = MultipleChoice.shuffled(correct: correct, wrong: wrong, using: &rng)
+        return ComprehensionQuestion(question: text, choices: choices, answerIndex: answerIndex, evidence: evidence)
     }
 
     static func prompt(passage: String, count: Int) -> String {

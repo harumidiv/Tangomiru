@@ -9,6 +9,15 @@ struct FoundationModelsSentenceAnalyzerTests {
         """)
     }
 
+    @Test func buildsQuizWithCorrectAnswerAtAnswerIndex() {
+        var rng = SeededRandom(seed: 3)
+        let quiz = FoundationModelsSentenceAnalyzer.quiz(
+            question: "had to の意味は？", correct: "〜しなければならなかった",
+            wrong: ["〜するつもりだった", "〜してもよかった", "〜できた"], using: &rng
+        )
+        #expect(quiz.choices[quiz.answerIndex] == "〜しなければならなかった")
+    }
+
     @Test func availabilityCheckDoesNotCrash() {
         _ = FoundationModelsSentenceAnalyzer().isAvailable
     }

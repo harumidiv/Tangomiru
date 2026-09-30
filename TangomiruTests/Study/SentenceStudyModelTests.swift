@@ -94,6 +94,34 @@ struct SentenceStudyModelTests {
         #expect(model.currentSentence == nil)
     }
 
+    @Test func regeneratesOnceWhenQuizIsBroken() async {
+        let recorder = CallRecorder()
+        let model = SentenceStudyModel(sentences: ["Only one."], analyzer: FakeSentenceAnalyzer { sentence in
+            recorder.record([sentence])
+            let broken = GrammarQuiz(question: "q", choices: ["a", "a", "b", "c"], answerIndex: 0)
+            let good = GrammarQuiz(question: "q", choices: ["a", "b", "c", "d"], answerIndex: 0)
+            return SentenceAnalysis(translation: "訳", parts: [], points: [], quiz: recorder.calls.count == 1 ? broken : good)
+        })
+        model.start()
+        await model.pendingTask(at: 0)?.value
+        #expect(recorder.calls.count == 2)
+        #expect(model.currentAnalysis?.quiz?.choices == ["a", "b", "c", "d"])
+    }
+
+    @Test func keepsFirstResultWhenRegeneratedQuizIsAlsoBroken() async {
+        let recorder = CallRecorder()
+        let model = SentenceStudyModel(sentences: ["Only one."], analyzer: FakeSentenceAnalyzer { sentence in
+            recorder.record([sentence])
+            return SentenceAnalysis(translation: "訳\(recorder.calls.count)", parts: [], points: [],
+                                    quiz: GrammarQuiz(question: "q", choices: ["a"], answerIndex: 0))
+        })
+        model.start()
+        await model.pendingTask(at: 0)?.value
+        #expect(recorder.calls.count == 2)
+        #expect(model.currentAnalysis?.translation == "訳1")
+        #expect(model.currentAnalysis?.quiz == nil)
+    }
+
     @Test func invalidOutputCountsAsFailure() async {
         let model = SentenceStudyModel(sentences: Self.sentences, analyzer: FakeSentenceAnalyzer { _ in
             SentenceAnalysis(translation: "", parts: [], points: [], quiz: nil)
