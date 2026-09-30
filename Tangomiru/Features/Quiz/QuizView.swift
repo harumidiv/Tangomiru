@@ -93,23 +93,29 @@ struct QuizView: View {
         .padding(.top, 8)
     }
 
+    /// 英単語は常にカードの中心。問題番号は単語のすぐ上、解答後の例文はカード下部に重ねて表示し、単語の位置を動かさない
     private func card(_ question: QuizQuestion, session: QuizSession) -> some View {
-        VStack(spacing: 12) {
-            Spacer(minLength: 0)
-            Text("\(session.position + 1) / \(session.totalCount)")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            if question.isRetry {
-                Text("もう一度").font(.caption.bold()).foregroundStyle(.orange)
-            }
+        ZStack {
             Text(question.card.term)
                 .font(.system(size: 44, weight: .bold))
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.5)
                 .lineLimit(2)
-            Spacer(minLength: 0)
+                .overlay(alignment: .top) {
+                    VStack(spacing: 4) {
+                        Text("\(session.position + 1) / \(session.totalCount)")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                        if question.isRetry {
+                            Text("もう一度").font(.caption.bold()).foregroundStyle(.orange)
+                        }
+                    }
+                    .fixedSize()
+                    .alignmentGuide(.top) { $0[.bottom] + 12 }
+                }
             if let feedback {
                 VStack(spacing: 8) {
+                    Spacer()
                     Text(feedback.isCorrect ? "正解！" : "正解は「\(feedback.correctAnswer)」")
                         .font(.headline)
                         .foregroundStyle(feedback.isCorrect ? .green : .red)
@@ -117,6 +123,7 @@ struct QuizView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                        .lineLimit(4)
                 }
                 .transition(.opacity)
             }

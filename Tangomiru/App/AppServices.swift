@@ -41,6 +41,15 @@ final class AppServices {
         )
     }
 
+    /// 以前の形式で保存された意味を1つの意味に作り直す（辞書の読み込み後に呼ぶ）
+    func migrateMeanings(of passages: [Passage]) {
+        guard let dictionary else { return }
+        let tokenizer = Tokenizer()
+        for passage in passages {
+            MeaningMigration.migrate(passage, tokenizer: tokenizer, dictionary: dictionary)
+        }
+    }
+
     /// 誤答が足りないときの補充用に、辞書からランダムな訳を返す
     func fallbackMeanings(count: Int = 30) -> [String] {
         guard let dictionary else { return [] }

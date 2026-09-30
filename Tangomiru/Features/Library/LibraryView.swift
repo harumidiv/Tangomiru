@@ -4,6 +4,7 @@ import SwiftUI
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Passage.createdAt, order: .reverse) private var passages: [Passage]
+    @Environment(AppServices.self) private var services
     @State private var isAddingPassage = false
 
     var body: some View {
@@ -37,6 +38,9 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $isAddingPassage) {
                 PassageInputView()
+            }
+            .task(id: services.status.isReady) {
+                if services.status.isReady { services.migrateMeanings(of: passages) }
             }
         }
     }
