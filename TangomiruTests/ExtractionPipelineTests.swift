@@ -2,11 +2,11 @@ import Testing
 @testable import Tangomiru
 
 struct ExtractionPipelineTests {
-    static let words = [
+    nonisolated static let words = [
         "abyss", "ballad", "cactus", "dagger", "ember", "falcon", "glacier", "hamlet", "iceberg", "jungle",
         "kernel", "lantern", "meadow", "nectar", "orchid", "pebble", "quartz", "riddle", "saddle", "tundra",
     ]
-    static let body = "I saw " + words.joined(separator: ", ") + "."
+    nonisolated static let body = "I saw " + words.joined(separator: ", ") + "."
 
     let dictionary = FakeDictionary(entries: Dictionary(uniqueKeysWithValues: words.map { ($0, "\($0)の辞書訳") }))
 
@@ -14,7 +14,7 @@ struct ExtractionPipelineTests {
         ExtractionPipeline(extractor: DictionaryExtractor(dictionary: dictionary, basicWords: []), enricher: enricher)
     }
 
-    private static func aiOutput(for inputs: [EnrichmentInput]) -> EnrichmentOutput {
+    nonisolated private static func aiOutput(for inputs: [EnrichmentInput]) -> EnrichmentOutput {
         EnrichmentOutput(
             words: inputs.map { EnrichedEntry(term: $0.term, meaning: "\($0.term)の文脈訳", distractors: ["x", "y", "z", "\($0.term)の文脈訳"]) },
             idioms: []
