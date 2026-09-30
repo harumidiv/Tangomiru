@@ -3,6 +3,7 @@ import SwiftUI
 struct PassageDetailView: View {
     let passage: Passage
     @AppStorage("quizLength") private var quizLengthRaw = QuizLength.ten.rawValue
+    @State private var isQuizPresented = false
 
     private var quizLength: Binding<QuizLength> {
         Binding(
@@ -38,6 +39,11 @@ struct PassageDetailView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                Button("クイズを始める", systemImage: "play.fill") { isQuizPresented = true }
+                    .disabled(stats.total == 0)
+                if stats.total == 0 {
+                    Text("出題ONの語がありません").font(.footnote).foregroundStyle(.secondary)
+                }
             }
             Section {
                 NavigationLink {
@@ -49,5 +55,8 @@ struct PassageDetailView: View {
         }
         .navigationTitle(passage.title)
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $isQuizPresented) {
+            QuizView(passage: passage, length: quizLength.wrappedValue)
+        }
     }
 }
