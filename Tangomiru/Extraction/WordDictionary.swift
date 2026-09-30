@@ -51,7 +51,12 @@ nonisolated struct EJDictionary: WordDictionary {
 
     func meaning(for key: String, partOfSpeech: PartOfSpeech?) -> String? {
         guard let raw = rawEntries[key] else { return nil }
-        let formatted = MeaningFormatter.format(raw, partOfSpeech: partOfSpeech)
+        var formatted = MeaningFormatter.format(raw, partOfSpeech: partOfSpeech)
+        // "'em =them" のように参照しか無い見出しは、参照先の意味を使う（1段だけ）
+        if formatted.isEmpty, let target = MeaningFormatter.referenceTarget(in: raw)?.lowercased(),
+           target != key, let targetRaw = rawEntries[target] {
+            formatted = MeaningFormatter.format(targetRaw, partOfSpeech: partOfSpeech)
+        }
         return formatted.isEmpty ? nil : formatted
     }
 

@@ -73,7 +73,7 @@ nonisolated struct ExtractionPipeline: Sendable {
         for distractor in raw {
             // 正解と見た目を揃えるため、誤答も補足を除いた1語にする
             let trimmed = MeaningFormatter.single(distractor)
-            if !trimmed.isEmpty && trimmed != meaning && !result.contains(trimmed) {
+            if MeaningFormatter.containsJapanese(trimmed) && trimmed != meaning && !result.contains(trimmed) {
                 result.append(trimmed)
             }
         }

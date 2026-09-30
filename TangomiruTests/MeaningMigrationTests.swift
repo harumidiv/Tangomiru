@@ -28,6 +28,18 @@ struct MeaningMigrationTests {
         #expect(run.meaning == "走ること")
     }
 
+    @Test func repairsCrossReferenceMeaning() throws {
+        let context = try makeContext()
+        let passage = Passage(title: "t", body: "We analyze data.", usedAI: false)
+        context.insert(passage)
+        let analyze = item("analyze", meaning: "=analyze", distractors: ["=colour", "走る"], source: .dictionary, at: 3, length: 7)
+        passage.items = [analyze]
+        let dictionary = FakeDictionary(entries: ["analyze": "分析する"])
+        MeaningMigration.migrate(passage, tokenizer: Tokenizer(), dictionary: dictionary)
+        #expect(analyze.meaning == "分析する")
+        #expect(analyze.distractors == ["走る"])
+    }
+
     @Test func simplifiesAIMeaningAndDistractors() throws {
         let context = try makeContext()
         let passage = Passage(title: "t", body: "gave up", usedAI: true)
@@ -53,5 +65,7 @@ struct MeaningMigrationTests {
         #expect(MeaningMigration.needsMigration("走る,駆ける / 急ぐ"))
         #expect(MeaningMigration.needsMigration("〈人が〉急ぐ"))
         #expect(!MeaningMigration.needsMigration("走る"))
+        #expect(MeaningMigration.needsMigration("=analyze"))
+        #expect(MeaningMigration.needsMigration("answer"))
     }
 }

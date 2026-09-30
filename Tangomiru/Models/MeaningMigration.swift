@@ -4,6 +4,7 @@ import Foundation
 enum MeaningMigration {
     static func needsMigration(_ meaning: String) -> Bool {
         meaning.contains(" / ") || MeaningFormatter.single(meaning) != meaning
+            || !MeaningFormatter.containsJapanese(meaning)
     }
 
     static func migrate(_ passage: Passage, tokenizer: Tokenizer, dictionary: any WordDictionary) {

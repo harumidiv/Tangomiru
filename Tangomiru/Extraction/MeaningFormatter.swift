@@ -23,11 +23,35 @@ nonisolated enum MeaningFormatter {
         case .verb, .adjective: preferred = senses.filter { !isNounSense($0) }
         case .other, nil: preferred = []
         }
-        for sense in preferred + senses {
+        for sense in preferred + senses where !isCrossReference(sense) {
             let meaning = single(sense)
-            if !meaning.isEmpty { return meaning }
+            // "answer" のような英語だけの訳は日本語の答えにならないので使わない
+            if containsJapanese(meaning) { return meaning }
         }
         return ""
+    }
+
+    /// "=them" のような参照（別の見出しと同じ意味）の参照先。参照が無ければ nil
+    static func referenceTarget(in raw: String) -> String? {
+        for sense in raw.components(separatedBy: " / ") where isCrossReference(sense) {
+            let target = sense.trimmingCharacters(in: .whitespaces).dropFirst()
+                .trimmingCharacters(in: .whitespaces)
+            if !target.isEmpty { return target }
+        }
+        return nil
+    }
+
+    static func containsJapanese(_ text: String) -> Bool {
+        text.unicodeScalars.contains { scalar in
+            switch scalar.value {
+            case 0x3040...0x30FF, 0x3400...0x4DBF, 0x4E00...0x9FFF, 0x3005, 0x3006: true
+            default: false
+            }
+        }
+    }
+
+    private static func isCrossReference(_ sense: String) -> Bool {
+        sense.trimmingCharacters(in: .whitespaces).hasPrefix("=")
     }
 
     /// 括弧の補足を取り除き、意味を1つだけ返す（AI の出力にも使う）。

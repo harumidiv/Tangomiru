@@ -16,7 +16,7 @@ struct ExtractionPipelineTests {
 
     nonisolated private static func aiOutput(for inputs: [EnrichmentInput]) -> EnrichmentOutput {
         EnrichmentOutput(
-            words: inputs.map { EnrichedEntry(term: $0.term, meaning: "\($0.term)の文脈訳", distractors: ["x", "y", "z", "\($0.term)の文脈訳"]) },
+            words: inputs.map { EnrichedEntry(term: $0.term, meaning: "\($0.term)の文脈訳", distractors: ["誤1", "誤2", "誤3", "\($0.term)の文脈訳"]) },
             idioms: []
         )
     }
@@ -41,7 +41,7 @@ struct ExtractionPipelineTests {
         let result = await pipeline(FakeEnricher { inputs, _ in Self.aiOutput(for: inputs) }).run(Self.body)
         #expect(result.usedAI)
         #expect(result.items[0].meaning == "abyssの文脈訳")
-        #expect(result.items[0].distractors == ["x", "y", "z"])
+        #expect(result.items[0].distractors == ["誤1", "誤2", "誤3"])
         #expect(result.items[0].source == .dictionary)
     }
 

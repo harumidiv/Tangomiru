@@ -38,6 +38,23 @@ struct MeaningFormatterTests {
         #expect(MeaningFormatter.single("のろい") == "のろい")
     }
 
+    @Test func skipsCrossReferenceSenses() {
+        let raw = "=analyze / 〈状況など〉を『分析する』,詳細に検討する / 《米》〈人〉を精神分析する(psychoanalyze)"
+        #expect(MeaningFormatter.format(raw, partOfSpeech: .verb) == "分析する")
+        #expect(MeaningFormatter.format(raw) == "分析する")
+    }
+
+    @Test func skipsSensesWithoutJapanese() {
+        #expect(MeaningFormatter.format("answer / ampere") == "")
+        #expect(MeaningFormatter.format("=AA / antiaircraft / 対空の") == "対空の")
+    }
+
+    @Test func extractsCrossReferenceTarget() {
+        #expect(MeaningFormatter.referenceTarget(in: "=them") == "them")
+        #expect(MeaningFormatter.referenceTarget(in: "=it was / ") == "it was")
+        #expect(MeaningFormatter.referenceTarget(in: "走る") == nil)
+    }
+
     @Test func skipsSensesThatBecomeEmpty() {
         #expect(MeaningFormatter.format("《米》 / 猫, ねこ") == "猫")
     }
