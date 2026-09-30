@@ -6,7 +6,7 @@ struct DictionaryExtractorTests {
         "ice cream": "アイスクリーム", "ice cream soda": "クリームソーダ",
         "ice": "氷", "cream": "クリーム", "soda": "ソーダ",
         "run": "走る", "grant": "許可する", "for granted": "当然のこととして",
-        "ubiquitous": "至る所にある", "tokyo": "東京", "apple": "りんご", "the": "その", "n't": "否定",
+        "ubiquitous": "至る所にある", "tokyo": "東京", "apple": "りんご", "the": "その", "n't": "否定", "ca": "circa",
     ])
 
     private func extract(_ specs: [String], sentences: [String] = ["context"], basic: Set<String> = ["the"]) -> [ExtractedItem] {
@@ -67,6 +67,19 @@ struct DictionaryExtractorTests {
         #expect(extract(["do", "n't"]).isEmpty)
         #expect(!DictionaryExtractor.isWordLike("'s"))
         #expect(DictionaryExtractor.isWordLike("well-known"))
+    }
+
+    @Test func skipsHostOfAttachedContraction() {
+        // "can't" は NLTagger で "ca" + "n't" に分かれ、2つは隙間なく隣接する
+        let tokens = [
+            Token(surface: "ca", lemma: "ca", span: TextSpan(location: 0, length: 2), sentenceIndex: 0,
+                  isProperNoun: false, followsPreviousDirectly: false),
+            Token(surface: "n't", lemma: "n't", span: TextSpan(location: 2, length: 3), sentenceIndex: 0,
+                  isProperNoun: false, followsPreviousDirectly: true),
+        ]
+        let items = DictionaryExtractor(dictionary: dictionary, basicWords: [])
+            .extract(from: TokenizedText(tokens: tokens, sentences: ["context"]))
+        #expect(items.isEmpty)
     }
 
     @Test func phraseKeysCombineSurfaceAndLemma() {

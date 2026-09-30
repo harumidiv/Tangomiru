@@ -8,6 +8,7 @@ struct EJDictionaryTests {
     Polish\tポーランドの
     polish\t…を磨く
     ice cream\tアイスクリーム
+    OK\tOklahoma(オクラホマ州)の略
     broken line without tab
     """)
 
@@ -22,6 +23,10 @@ struct EJDictionaryTests {
 
     @Test func prefersLowercaseHeadword() {
         #expect(dictionary.meaning(for: "polish") == "…を磨く")
+    }
+
+    @Test func ignoresHeadwordsWithoutLowercaseForm() {
+        #expect(dictionary.meaning(for: "ok") == nil)
     }
 
     @Test func supportsPhrases() {

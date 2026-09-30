@@ -39,6 +39,10 @@ nonisolated struct DictionaryExtractor: Sendable {
                 index += match.length
                 continue
             }
+            if Self.isContractionHost(at: index, in: tokens) {
+                index += 1
+                continue
+            }
             if let match = wordMatch(for: tokens[index]) {
                 record(match.term, meaning: match.meaning, span: tokens[index].span, sentenceIndex: tokens[index].sentenceIndex)
             }
@@ -75,6 +79,14 @@ nonisolated struct DictionaryExtractor: Sendable {
             }
         }
         return nil
+    }
+
+    /// "can't" → "ca" + "n't" のように、直後に隙間なく "n't" が続くトークン（短縮形の前半）
+    static func isContractionHost(at index: Int, in tokens: [Token]) -> Bool {
+        guard tokens.indices.contains(index + 1) else { return false }
+        let next = tokens[index + 1]
+        let suffix = next.surface.lowercased().replacingOccurrences(of: "’", with: "'")
+        return suffix == "n't" && next.span.location == tokens[index].span.end
     }
 
     /// 各トークンの表層形（小文字）と原形の組み合わせを、表層形優先で列挙する（例: "took off", "take off"）

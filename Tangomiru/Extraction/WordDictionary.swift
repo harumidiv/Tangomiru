@@ -18,20 +18,16 @@ nonisolated struct EJDictionary: WordDictionary {
 
     init(tsv: String) {
         var entries: [String: String] = [:]
-        var lowercaseHeadwords: Set<String> = []
         for line in tsv.split(separator: "\n", omittingEmptySubsequences: true) {
             let parts = line.split(separator: "\t", maxSplits: 1)
             guard parts.count == 2 else { continue }
             let raw = String(parts[1])
             for headword in parts[0].split(separator: ",") {
                 let head = headword.trimmingCharacters(in: .whitespaces)
-                guard !head.isEmpty else { continue }
-                let key = head.lowercased()
-                let isLowercase = head == key
-                // "Polish" と "polish" のように大文字違いがある場合は小文字の見出しを優先する
-                if entries[key] != nil && (lowercaseHeadwords.contains(key) || !isLowercase) { continue }
-                entries[key] = raw
-                if isLowercase { lowercaseHeadwords.insert(key) }
+                // 大文字を含む見出し（固有名詞・略語: "Polish", "OK", "PM", "WO" など）は使わない。
+                // 本文の語は小文字化して引くため、"ok" が「オクラホマ州」になるような誤訳を防ぐ
+                guard !head.isEmpty, head == head.lowercased(), entries[head] == nil else { continue }
+                entries[head] = raw
             }
         }
         rawEntries = entries

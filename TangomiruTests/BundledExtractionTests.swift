@@ -21,4 +21,14 @@ struct BundledExtractionTests {
         #expect(!terms.contains { $0.hasPrefix("'") || $0.hasPrefix("’") || $0.hasPrefix("n'") || $0.hasPrefix("n’") })
         #expect(result.items.allSatisfy { !$0.meaning.isEmpty && !$0.occurrences.isEmpty })
     }
+
+    @Test func skipsContractionsPronounsAndInterjections() async throws {
+        let pipeline = ExtractionPipeline(
+            extractor: DictionaryExtractor(dictionary: try EJDictionary.loadBundled(), basicWords: try BasicWords.loadBundled()),
+            enricher: nil
+        )
+        let text = "Oh, I won’t go. You can’t stop me. An hour ago my friend and her dog said hello. OK, see you at 5 PM, okay?"
+        let terms = Set(await pipeline.run(text).items.map(\.term))
+        #expect(terms.isDisjoint(with: ["wo", "ca", "oh", "an", "my", "her", "hello", "ok", "okay", "pm"]), "\(terms)")
+    }
 }
