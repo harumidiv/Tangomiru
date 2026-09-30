@@ -1,6 +1,6 @@
 import AVFoundation
 
-/// クイズの正解音・不正解音を鳴らす。マナーモードでは鳴らさず、他のアプリの音も止めない
+/// クイズの正解音・不正解音を鳴らす（音の設定は AppAudioSession に従う。マナーモードでも鳴る）
 final class QuizSoundPlayer {
     enum Sound: CaseIterable {
         case correct
@@ -17,7 +17,7 @@ final class QuizSoundPlayer {
     private var players: [Sound: AVAudioPlayer] = [:]
 
     init() {
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+        AppAudioSession.configure()
         for sound in Sound.allCases {
             guard let url = Self.url(for: sound), let player = try? AVAudioPlayer(contentsOf: url) else { continue }
             player.prepareToPlay()

@@ -9,10 +9,8 @@ struct WordSpeakerTests {
         #expect(utterance.voice?.language.hasPrefix("en") == true)
     }
 
-    @Test func speaksEvenInSilentModeWithoutStoppingOtherAudio() {
-        #expect(WordSpeaker.speakingCategory == .playback)
-        #expect(WordSpeaker.speakingOptions.contains(.mixWithOthers))
-        #expect(WordSpeaker.speakingOptions.contains(.duckOthers))
-        #expect(WordSpeaker.idleCategory == .ambient)
+    @Test func appAudioPlaysInSilentModeWithoutStoppingOtherAudio() {
+        #expect(AppAudioSession.category == .playback)
+        #expect(AppAudioSession.options.contains(.mixWithOthers))
     }
 }
