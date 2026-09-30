@@ -15,6 +15,7 @@ struct QuizView: View {
     /// 復習の回を始めるたびに増やし、タイマーを確実にリセットする
     @State private var round = 0
     @State private var speaker = WordSpeaker()
+    @State private var soundPlayer = QuizSoundPlayer()
 
     var body: some View {
         NavigationStack {
@@ -36,6 +37,9 @@ struct QuizView: View {
         // 正解は成功、不正解・時間切れ・SKIP は失敗の振動
         .sensoryFeedback(trigger: feedback) { _, feedback in
             feedback.map { $0.isCorrect ? .success : .error }
+        }
+        .onChange(of: feedback) { _, feedback in
+            if let feedback { soundPlayer.play(correct: feedback.isCorrect) }
         }
         .onDisappear { speaker.stop() }
         .task {

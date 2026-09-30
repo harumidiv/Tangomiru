@@ -6,6 +6,7 @@ struct ComprehensionQuizView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: ComprehensionQuizModel
     private let sentences: [String]
+    @State private var soundPlayer = QuizSoundPlayer()
 
     /// 抽出時に保存した問題があればそれを出し、無ければその場で作って保存する
     init(passage: Passage) {
@@ -33,6 +34,9 @@ struct ComprehensionQuizView: View {
         // 正解は成功、不正解は失敗の振動
         .sensoryFeedback(trigger: model.selectedIndex) { _, _ in
             model.isCurrentCorrect.map { $0 ? .success : .error }
+        }
+        .onChange(of: model.selectedIndex) { _, _ in
+            if let isCorrect = model.isCurrentCorrect { soundPlayer.play(correct: isCorrect) }
         }
     }
 
