@@ -1,7 +1,11 @@
+import SwiftData
 import SwiftUI
 
 struct PassageDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     let passage: Passage
+    @State private var isConfirmingDelete = false
     @AppStorage("quizLength") private var quizLengthRaw = QuizLength.ten.rawValue
     @State private var isQuizPresented = false
     @State private var isStudyPresented = false
@@ -12,6 +16,18 @@ struct PassageDetailView: View {
             get: { QuizLength(rawValue: quizLengthRaw) ?? .ten },
             set: { quizLengthRaw = $0.rawValue }
         )
+    }
+
+    /// 画面を閉じてから削除する（閉じるアニメーション中に削除済みのデータを描画しないため）
+    private func deletePassage() {
+        let passage = passage
+        let modelContext = modelContext
+        dismiss()
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            modelContext.delete(passage)
+            try? modelContext.save()
+        }
     }
 
     var body: some View {
@@ -70,6 +86,18 @@ struct PassageDetailView: View {
         }
         .navigationTitle(passage.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu("その他", systemImage: "ellipsis") {
+                    Button("この英文を削除", systemImage: "trash", role: .destructive) { isConfirmingDelete = true }
+                }
+            }
+        }
+        .confirmationDialog("「\(passage.title)」を削除しますか？", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+            Button("削除", role: .destructive, action: deletePassage)
+        } message: {
+            Text("単語の学習記録も一緒に削除されます。この操作は取り消せません。")
+        }
         .fullScreenCover(isPresented: $isStudyPresented) {
             SentenceStudyView(passage: passage)
         }

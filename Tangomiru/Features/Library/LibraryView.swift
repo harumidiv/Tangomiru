@@ -32,6 +32,11 @@ struct LibraryView: View {
                 PassageDetailView(passage: passage)
             }
             .toolbar {
+                if !passages.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        EditButton()
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button("英文を追加", systemImage: "plus") { isAddingPassage = true }
                 }
