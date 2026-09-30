@@ -68,7 +68,7 @@ struct PassageDetailView: View {
                     .disabled(!isSentenceStudyAvailable)
             } footer: {
                 Text(isSentenceStudyAvailable
-                     ? "1文ずつ読んで、和訳・文の構造・文法ポイントを確認します"
+                     ? "1文ずつ読んで、和訳と解説を確認します"
                      : "Apple Intelligence 対応端末で使えます")
             }
             Section {

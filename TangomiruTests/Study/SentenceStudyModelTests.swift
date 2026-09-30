@@ -5,16 +5,12 @@ struct SentenceStudyModelTests {
     static let sentences = ["First one.", "Second one.", "Third one."]
 
     private static func analysis(for sentence: String) -> SentenceAnalysis {
-        SentenceAnalysis(
-            translation: "\(sentence)の訳", parts: [], points: [],
-            quiz: GrammarQuiz(question: "q", choices: ["a", "b", "c", "d"], answerIndex: 2)
-        )
+        SentenceAnalysis(translation: "\(sentence)の訳", explanation: "\(sentence)の説明")
     }
 
-    private func model(fail: Set<String> = [], recorder: CallRecorder = CallRecorder()) -> SentenceStudyModel {
+    private func model(recorder: CallRecorder = CallRecorder()) -> SentenceStudyModel {
         SentenceStudyModel(sentences: Self.sentences, analyzer: FakeSentenceAnalyzer { sentence in
             recorder.record([sentence])
-            if fail.contains(sentence) { throw FakeError() }
             return Self.analysis(for: sentence)
         })
     }
@@ -34,40 +30,25 @@ struct SentenceStudyModelTests {
         #expect(!model.isRevealed)
     }
 
-    @Test func nextMovesOnResetsStateAndPrefetches() async {
+    @Test func revealShowsExplanation() async {
+        let model = model()
+        model.start()
+        model.reveal()
+        #expect(model.isRevealed)
+    }
+
+    @Test func nextMovesOnResetsRevealAndPrefetches() async {
         let recorder = CallRecorder()
         let model = model(recorder: recorder)
         model.start()
         await settle(model)
         model.reveal()
-        model.answerQuiz(1)
         model.next()
         await settle(model)
         #expect(model.index == 1)
         #expect(!model.isRevealed)
-        #expect(model.selectedQuizIndex == nil)
         #expect(recorder.calls.flatMap { $0 }.filter { $0 == "Second one." }.count == 1)
         #expect(recorder.calls.flatMap { $0 }.contains("Third one."))
-    }
-
-    @Test func answeringQuizTwiceKeepsFirstAnswer() async {
-        let model = model()
-        model.start()
-        await settle(model)
-        model.answerQuiz(2)
-        model.answerQuiz(0)
-        #expect(model.selectedQuizIndex == 2)
-        #expect(model.isQuizCorrect == true)
-    }
-
-    @Test func answeringQuizRevealsExplanation() async {
-        let model = model()
-        model.start()
-        await settle(model)
-        #expect(!model.isRevealed)
-        model.answerQuiz(1)
-        #expect(model.isRevealed)
-        #expect(model.isQuizCorrect == false)
     }
 
     @Test func failureCanBeRetried() async {
@@ -94,40 +75,40 @@ struct SentenceStudyModelTests {
         #expect(model.currentSentence == nil)
     }
 
-    @Test func regeneratesOnceWhenQuizIsBroken() async {
-        let recorder = CallRecorder()
-        let model = SentenceStudyModel(sentences: ["Only one."], analyzer: FakeSentenceAnalyzer { sentence in
-            recorder.record([sentence])
-            let broken = GrammarQuiz(question: "q", choices: ["a", "a", "b", "c"], answerIndex: 0)
-            let good = GrammarQuiz(question: "q", choices: ["a", "b", "c", "d"], answerIndex: 0)
-            return SentenceAnalysis(translation: "訳", parts: [], points: [], quiz: recorder.calls.count == 1 ? broken : good)
-        })
-        model.start()
-        await model.pendingTask(at: 0)?.value
-        #expect(recorder.calls.count == 2)
-        #expect(model.currentAnalysis?.quiz?.choices == ["a", "b", "c", "d"])
-    }
-
-    @Test func keepsFirstResultWhenRegeneratedQuizIsAlsoBroken() async {
-        let recorder = CallRecorder()
-        let model = SentenceStudyModel(sentences: ["Only one."], analyzer: FakeSentenceAnalyzer { sentence in
-            recorder.record([sentence])
-            return SentenceAnalysis(translation: "訳\(recorder.calls.count)", parts: [], points: [],
-                                    quiz: GrammarQuiz(question: "q", choices: ["a"], answerIndex: 0))
-        })
-        model.start()
-        await model.pendingTask(at: 0)?.value
-        #expect(recorder.calls.count == 2)
-        #expect(model.currentAnalysis?.translation == "訳1")
-        #expect(model.currentAnalysis?.quiz == nil)
-    }
-
     @Test func invalidOutputCountsAsFailure() async {
         let model = SentenceStudyModel(sentences: Self.sentences, analyzer: FakeSentenceAnalyzer { _ in
-            SentenceAnalysis(translation: "", parts: [], points: [], quiz: nil)
+            SentenceAnalysis(translation: "", explanation: "説明")
         })
         model.start()
         await settle(model)
         #expect(model.currentState == .failed)
+    }
+
+    @Test func usesSavedAnalysisWithoutGenerating() async {
+        let recorder = CallRecorder()
+        let saved = Self.analysis(for: "保存済み")
+        let model = SentenceStudyModel(
+            sentences: Self.sentences, saved: ["First one.": saved],
+            analyzer: FakeSentenceAnalyzer { sentence in
+                recorder.record([sentence])
+                return Self.analysis(for: sentence)
+            }
+        )
+        model.start()
+        await settle(model)
+        #expect(model.currentAnalysis == saved)
+        #expect(recorder.calls.flatMap { $0 } == ["Second one."])
+    }
+
+    @Test func reportsNewlyGeneratedAnalysesForSaving() async {
+        let reported = CallRecorder()
+        let model = SentenceStudyModel(
+            sentences: Self.sentences, saved: ["First one.": Self.analysis(for: "x")],
+            analyzer: FakeSentenceAnalyzer { Self.analysis(for: $0) },
+            onAnalyzed: { sentence, analysis in reported.record([sentence, analysis.translation]) }
+        )
+        model.start()
+        await settle(model)
+        #expect(reported.calls == [["Second one.", "Second one.の訳"]])
     }
 }

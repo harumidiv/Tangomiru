@@ -1,15 +1,18 @@
 import SwiftUI
 import UIKit
 
-/// 1文ずつ英文を読み、確認問題に答えてから和訳・文の構造・文法ポイントで学ぶ（Apple Intelligence 対応端末のみ）
+/// 1文ずつ英文を読み、和訳と解説で学ぶ（Apple Intelligence 対応端末のみ）
 struct SentenceStudyView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: SentenceStudyModel
 
+    /// 保存済みの解説はそのまま使い、初めて開いた文だけ作って保存する
     init(passage: Passage) {
         self.init(model: SentenceStudyModel(
             sentences: SentenceSplitter.sentences(in: passage.body),
-            analyzer: FoundationModelsSentenceAnalyzer()
+            saved: passage.sentenceAnalyses,
+            analyzer: FoundationModelsSentenceAnalyzer(),
+            onAnalyzed: { sentence, analysis in passage.saveSentenceAnalysis(analysis, for: sentence) }
         ))
     }
 
@@ -34,23 +37,14 @@ struct SentenceStudyView: View {
                 Spacer()
                 primaryButton("閉じる") { dismiss() }
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            sentenceCard
-                            studyContent
-                        }
-                        .padding(.bottom, 16)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        sentenceCard
+                        if model.isRevealed { explanation }
                     }
-                    .scrollIndicators(.hidden)
-                    .task(id: model.isRevealed) {
-                        guard model.isRevealed else { return }
-                        // 自分の答えの ○× を少し見せてから解説までスクロールする
-                        try? await Task.sleep(for: .milliseconds(800))
-                        guard !Task.isCancelled else { return }
-                        withAnimation { proxy.scrollTo(Self.explanationID, anchor: .top) }
-                    }
+                    .padding(.bottom, 16)
                 }
+                .scrollIndicators(.hidden)
                 bottomButton
             }
         }
@@ -93,32 +87,31 @@ struct SentenceStudyView: View {
             .overlay(RoundedRectangle(cornerRadius: 20).stroke(QuizPalette.border, lineWidth: 2))
     }
 
-    private static let explanationID = "explanation"
-
-    /// 確認問題を先に出し、答えたら（問題が無いときはボタンで）和訳と解説を出す
     @ViewBuilder
-    private var studyContent: some View {
+    private var explanation: some View {
         switch model.currentState {
         case .loaded(let analysis):
-            if let quiz = analysis.quiz {
-                QuizSection(quiz: quiz, selectedIndex: model.selectedQuizIndex) { index in
-                    withAnimation { model.answerQuiz(index) }
+            VStack(alignment: .leading, spacing: 16) {
+                StudySection(title: "和訳") {
+                    Text(analysis.translation).font(.body)
+                }
+                if !analysis.explanation.isEmpty {
+                    StudySection(title: "解説") {
+                        Text(analysis.explanation).font(.body)
+                    }
                 }
             }
-            if model.isRevealed {
-                ExplanationSections(analysis: analysis)
-                    .id(Self.explanationID)
-            }
+            .transition(.opacity)
         case .failed:
             VStack(spacing: 12) {
-                Text("問題と解説を作れませんでした").font(.headline)
+                Text("解説を作れませんでした").font(.headline)
                 Button("もう一度試す", systemImage: "arrow.clockwise") { model.retry() }
                     .buttonStyle(.bordered)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 24)
         case .loading, nil:
-            ProgressView("問題を作成中…")
+            ProgressView("解説を作成中…")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
         }
@@ -126,19 +119,11 @@ struct SentenceStudyView: View {
 
     @ViewBuilder
     private var bottomButton: some View {
-        let isLast = model.index == model.sentences.count - 1
-        let nextTitle = isLast ? "読み終える" : "次の文へ"
-        switch model.currentState {
-        case .loaded(let analysis) where analysis.quiz == nil && !model.isRevealed:
+        if model.isRevealed {
+            let isLast = model.index == model.sentences.count - 1
+            primaryButton(isLast ? "読み終える" : "次の文へ") { model.next() }
+        } else {
             primaryButton("和訳と解説を見る") { withAnimation { model.reveal() } }
-        case .loaded where model.isRevealed, .failed:
-            primaryButton(nextTitle) { model.next() }
-        case .loaded:
-            primaryButton("問題に答えると解説が出ます") {}
-                .disabled(true)
-        case .loading, nil:
-            primaryButton(nextTitle) {}
-                .disabled(true)
         }
     }
 
@@ -151,75 +136,6 @@ struct SentenceStudyView: View {
         .buttonStyle(.borderedProminent)
         .buttonBorderShape(.capsule)
         .tint(.orange)
-    }
-}
-
-private struct QuizSection: View {
-    let quiz: GrammarQuiz
-    let selectedIndex: Int?
-    let onAnswer: (Int) -> Void
-
-    var body: some View {
-        StudySection(title: "確認問題") {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(quiz.question).font(.body.weight(.semibold))
-                ForEach(Array(quiz.choices.enumerated()), id: \.offset) { index, choice in
-                    ChoiceButton(number: index + 1, text: choice, style: style(for: index)) {
-                        onAnswer(index)
-                    }
-                    .allowsHitTesting(selectedIndex == nil)
-                }
-            }
-        }
-    }
-
-    private func style(for index: Int) -> ChoiceButton.Style {
-        guard let selectedIndex else { return .normal }
-        if index == quiz.answerIndex { return .correct }
-        if index == selectedIndex { return .wrong }
-        return .normal
-    }
-}
-
-private struct ExplanationSections: View {
-    let analysis: SentenceAnalysis
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            StudySection(title: "和訳") {
-                Text(analysis.translation).font(.body)
-            }
-            if !analysis.parts.isEmpty {
-                StudySection(title: "文の構造") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(analysis.parts.enumerated()), id: \.offset) { _, part in
-                            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                Text(part.role)
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.orange)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Capsule().fill(.orange.opacity(0.15)))
-                                Text(part.text).font(.body)
-                            }
-                        }
-                    }
-                }
-            }
-            if !analysis.points.isEmpty {
-                StudySection(title: "文法ポイント") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(Array(analysis.points.enumerated()), id: \.offset) { _, point in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(point.title).font(.headline)
-                                Text(point.explanation).font(.subheadline).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .transition(.opacity)
     }
 }
 

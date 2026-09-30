@@ -13,6 +13,8 @@ final class Passage {
     var items: [VocabItem] = []
     @Relationship(deleteRule: .cascade, inverse: \StoredComprehensionQuestion.passage)
     var storedComprehension: [StoredComprehensionQuestion] = []
+    @Relationship(deleteRule: .cascade, inverse: \StoredSentenceAnalysis.passage)
+    var storedSentenceAnalyses: [StoredSentenceAnalysis] = []
 
     init(title: String, body: String, usedAI: Bool, createdAt: Date = .now) {
         self.title = title
@@ -38,6 +40,17 @@ extension Passage {
     func setComprehensionQuestions(_ questions: [ComprehensionQuestion]) {
         for old in storedComprehension { modelContext?.delete(old) }
         storedComprehension = questions.enumerated().map { StoredComprehensionQuestion(order: $0.offset, question: $0.element) }
+    }
+
+    /// 英文 → 保存済みの和訳と解説
+    var sentenceAnalyses: [String: SentenceAnalysis] {
+        Dictionary(storedSentenceAnalyses.map { ($0.sentence, $0.value) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    func saveSentenceAnalysis(_ analysis: SentenceAnalysis, for sentence: String) {
+        for old in storedSentenceAnalyses where old.sentence == sentence { modelContext?.delete(old) }
+        storedSentenceAnalyses.removeAll { $0.sentence == sentence }
+        storedSentenceAnalyses.append(StoredSentenceAnalysis(sentence: sentence, analysis: analysis))
     }
 
     func applyQuizResult(_ changes: [ScoreChange], at date: Date = .now) {

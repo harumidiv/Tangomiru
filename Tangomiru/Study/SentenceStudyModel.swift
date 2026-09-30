@@ -1,7 +1,8 @@
 import Foundation
 import Observation
 
-/// 1文ずつ学ぶ画面の進行。英文と確認問題を先に出し、答えたら和訳と解説を見せる。
+/// 1文ずつ学ぶ画面の進行。英文を表示し、「和訳と解説を見る」で和訳と解説を見せる。
+/// 保存済みの解説はそのまま使い、無い文だけ作って onAnalyzed で保存に回す。
 /// 表示中の文と次の文の解説を先に作っておき、待ち時間を減らす
 @Observable
 final class SentenceStudyModel {
@@ -13,16 +14,26 @@ final class SentenceStudyModel {
 
     let sentences: [String]
     private let analyzer: any SentenceAnalyzer
+    private let onAnalyzed: ((String, SentenceAnalysis) -> Void)?
     private(set) var index = 0
-    /// 和訳と解説を表示しているか（確認問題に答えるか、問題が無いときに「和訳と解説を見る」を押すと true）
+    /// 和訳と解説を表示しているか
     private(set) var isRevealed = false
-    private(set) var selectedQuizIndex: Int?
     private var states: [Int: LoadState] = [:]
     private var tasks: [Int: Task<Void, Never>] = [:]
 
-    init(sentences: [String], analyzer: any SentenceAnalyzer) {
+    /// saved は英文 → 保存済みの解説
+    init(
+        sentences: [String],
+        saved: [String: SentenceAnalysis] = [:],
+        analyzer: any SentenceAnalyzer,
+        onAnalyzed: ((String, SentenceAnalysis) -> Void)? = nil
+    ) {
         self.sentences = sentences
         self.analyzer = analyzer
+        self.onAnalyzed = onAnalyzed
+        for (index, sentence) in sentences.enumerated() {
+            if let analysis = saved[sentence] { states[index] = .loaded(analysis) }
+        }
     }
 
     var isFinished: Bool { index >= sentences.count }
@@ -34,11 +45,6 @@ final class SentenceStudyModel {
         return nil
     }
 
-    var isQuizCorrect: Bool? {
-        guard let selectedQuizIndex, let quiz = currentAnalysis?.quiz else { return nil }
-        return selectedQuizIndex == quiz.answerIndex
-    }
-
     func start() {
         prepareAround(index)
     }
@@ -47,18 +53,10 @@ final class SentenceStudyModel {
         isRevealed = true
     }
 
-    /// 確認問題に答えると和訳と解説を表示する
-    func answerQuiz(_ choiceIndex: Int) {
-        guard selectedQuizIndex == nil else { return }
-        selectedQuizIndex = choiceIndex
-        isRevealed = true
-    }
-
     func next() {
         guard !isFinished else { return }
         index += 1
         isRevealed = false
-        selectedQuizIndex = nil
         prepareAround(index)
     }
 
@@ -87,22 +85,10 @@ final class SentenceStudyModel {
         let sentence = sentences[index]
         let analyzer = analyzer
         tasks[index] = Task { [weak self] in
-            let state: LoadState
-            do {
-                var analysis = SentenceAnalysisValidator.validated(try await analyzer.analyze(sentence), sentence: sentence)
-                // 確認問題だけ壊れていたら1回作り直す。作り直しても駄目なら最初の解説を使う
-                if analysis != nil, analysis?.quiz == nil,
-                   let retried = try? await analyzer.analyze(sentence),
-                   let validRetry = SentenceAnalysisValidator.validated(retried, sentence: sentence),
-                   validRetry.quiz != nil {
-                    analysis = validRetry
-                }
-                state = analysis.map(LoadState.loaded) ?? .failed
-            } catch {
-                state = .failed
-            }
-            guard !Task.isCancelled else { return }
-            self?.states[index] = state
+            let analysis = try? SentenceAnalysisValidator.validated(await analyzer.analyze(sentence))
+            guard !Task.isCancelled, let self else { return }
+            states[index] = analysis.map(LoadState.loaded) ?? .failed
+            if let analysis { onAnalyzed?(sentence, analysis) }
         }
     }
 }
