@@ -9,7 +9,8 @@ final class WordSpeaker: NSObject, AVSpeechSynthesizerDelegate {
     static let speakingOptions: AVAudioSession.CategoryOptions = [.mixWithOthers, .duckOthers]
     static let idleCategory: AVAudioSession.Category = .ambient
 
-    private let synthesizer = AVSpeechSynthesizer()
+    /// メインスレッドからのみ使う（デリゲートの通知も MainActor に戻してから扱う）
+    nonisolated(unsafe) private let synthesizer = AVSpeechSynthesizer()
 
     override init() {
         super.init()
