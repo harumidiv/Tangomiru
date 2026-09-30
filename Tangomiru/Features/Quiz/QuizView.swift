@@ -14,6 +14,7 @@ struct QuizView: View {
     @State private var remaining = 1.0
     /// 復習の回を始めるたびに増やし、タイマーを確実にリセットする
     @State private var round = 0
+    @State private var speaker = WordSpeaker()
 
     var body: some View {
         NavigationStack {
@@ -32,6 +33,7 @@ struct QuizView: View {
                 }
             }
         }
+        .onDisappear { speaker.stop() }
         .task {
             guard session == nil else { return }
             session = QuizSession(
@@ -152,6 +154,8 @@ struct QuizView: View {
 
     /// 10秒たっても解答がなければ不正解として扱う
     private func runCountdown() async {
+        // 問題が表示されたら英単語を読み上げる
+        if let term = session?.current?.card.term { speaker.speak(term) }
         let start = ContinuousClock.now
         remaining = 1
         while !Task.isCancelled && feedback == nil {
