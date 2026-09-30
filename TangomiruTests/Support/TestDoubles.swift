@@ -77,3 +77,12 @@ nonisolated final class CallRecorder: Sendable {
 
     var calls: [[String]] { storage.withLock { $0 } }
 }
+
+nonisolated struct FakeSentenceAnalyzer: SentenceAnalyzer {
+    var isAvailable = true
+    let handler: @Sendable (String) throws -> SentenceAnalysis
+
+    func analyze(_ sentence: String) async throws -> SentenceAnalysis {
+        try handler(sentence)
+    }
+}
