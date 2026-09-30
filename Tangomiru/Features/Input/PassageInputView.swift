@@ -7,6 +7,7 @@ struct PassageInputView: View {
     @State private var bodyText = ""
     @State private var isExtracting = false
     @State private var progressMessage = "単語を抽出中…"
+    @AppStorage("includeBasicWords") private var includeBasicWords = false
     @State private var result: ExtractionResult?
     @State private var extractionTask: Task<Void, Never>?
 
@@ -21,6 +22,11 @@ struct PassageInputView: View {
                     } label: {
                         Label("英文を探す（英語ニュースのサイト）", systemImage: "globe")
                     }
+                }
+                Section {
+                    Toggle("基本語も出題に含める", isOn: $includeBasicWords)
+                } footer: {
+                    Text("基本語は中学レベルの約2,000語（people、important など）。オンでも the や is などの機能語は含めません")
                 }
                 Section("タイトル（省略可）") {
                     TextField("例: ニュース記事", text: $title)
@@ -88,7 +94,7 @@ struct PassageInputView: View {
 
     /// 二度押しで2回走らないよう、isExtracting はタップと同時に立てる
     private func startExtraction() {
-        guard !isExtracting, let pipeline = services.makePipeline() else { return }
+        guard !isExtracting, let pipeline = services.makePipeline(includeBasicWords: includeBasicWords) else { return }
         isExtracting = true
         progressMessage = "単語を抽出中…"
         let body = bodyText

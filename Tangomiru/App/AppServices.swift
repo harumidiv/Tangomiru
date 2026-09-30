@@ -33,10 +33,12 @@ final class AppServices {
         }
     }
 
-    func makePipeline() -> ExtractionPipeline? {
+    /// includeBasicWords が true なら基本語も出題に含める（機能語は除外）
+    func makePipeline(includeBasicWords: Bool = false) -> ExtractionPipeline? {
         guard let dictionary else { return nil }
+        let excluded = BasicWords.excludedWords(basic: basicWords, includeBasicWords: includeBasicWords)
         return ExtractionPipeline(
-            extractor: DictionaryExtractor(dictionary: dictionary, basicWords: basicWords),
+            extractor: DictionaryExtractor(dictionary: dictionary, basicWords: excluded),
             enricher: FoundationModelsEnricher()
         )
     }

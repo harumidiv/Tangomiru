@@ -31,4 +31,15 @@ struct BundledExtractionTests {
         let terms = Set(await pipeline.run(text).items.map(\.term))
         #expect(terms.isDisjoint(with: ["wo", "ca", "oh", "an", "my", "her", "hello", "ok", "okay", "pm"]), "\(terms)")
     }
+
+    @Test func includesBasicWordsWhenToggledButStillSkipsFunctionWords() async throws {
+        let excluded = BasicWords.excludedWords(basic: try BasicWords.loadBundled(), includeBasicWords: true)
+        let pipeline = ExtractionPipeline(
+            extractor: DictionaryExtractor(dictionary: try EJDictionary.loadBundled(), basicWords: excluded),
+            enricher: nil
+        )
+        let terms = Set(await pipeline.run(Self.sample).items.map(\.term))
+        #expect(terms.isSuperset(of: ["person", "day", "ubiquitous"]))  // people は原形の person として拾う
+        #expect(terms.isDisjoint(with: ["the", "their", "have", "had", "for", "to"]))
+    }
 }
