@@ -68,6 +68,14 @@ struct ComprehensionQuizModelTests {
         #expect(!model.hasFailed)
     }
 
+    @Test func totalCountShrinksToGeneratedQuestionsAfterGeneration() async {
+        let model = model(fail: { $0 == 1 })
+        #expect(model.totalCount == 4)
+        model.start()
+        await model.generationTask?.value
+        #expect(model.totalCount == 2)
+    }
+
     @Test func allChunksFailingCanBeRetried() async {
         let recorder = CallRecorder()
         let model = model(recorder: recorder, fail: { $0 <= 2 })

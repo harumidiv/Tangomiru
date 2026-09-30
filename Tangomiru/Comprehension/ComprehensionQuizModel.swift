@@ -26,6 +26,11 @@ final class ComprehensionQuizModel {
         self.generator = generator
     }
 
+    /// 生成中は予定の問題数、生成後は実際に作れた問題数
+    var totalCount: Int {
+        isGenerating || generationTask == nil ? plannedCount : questions.count
+    }
+
     var current: ComprehensionQuestion? { questions.indices.contains(index) ? questions[index] : nil }
     /// 次の問題をまだ作っている最中
     var isWaiting: Bool { current == nil && isGenerating }
