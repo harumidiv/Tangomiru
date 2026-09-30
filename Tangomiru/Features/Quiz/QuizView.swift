@@ -10,6 +10,8 @@ struct QuizView: View {
     @State private var feedback: AnswerFeedback?
     @State private var selectedChoice: String?
     @State private var isCommitted = false
+    /// 制限時間の残り割合（1 → 0）
+    @State private var remaining = 1.0
 
     var body: some View {
         NavigationStack {
@@ -18,6 +20,8 @@ struct QuizView: View {
                     if let question = session.current {
                         questionView(question, session: session)
                             .toolbar(.hidden, for: .navigationBar)
+                            .task(id: session.position) { await runCountdown() }
+                            .task(id: feedback) { await advanceAfterReveal() }
                     } else {
                         QuizResultView(session: session) { dismiss() }
                     }
@@ -37,15 +41,13 @@ struct QuizView: View {
 
     private func questionView(_ question: QuizQuestion, session: QuizSession) -> some View {
         VStack(spacing: 16) {
-            header(progress: session.progress)
+            header(remaining: remaining)
             card(question, session: session)
             HStack {
                 Spacer()
-                if feedback == nil {
-                    CircleButton(title: "SKIP", action: skip)
-                } else {
-                    CircleButton(title: "次へ", isProminent: true, action: next)
-                }
+                CircleButton(title: "SKIP", action: skip)
+                    .opacity(feedback == nil ? 1 : 0.4)
+                    .allowsHitTesting(feedback == nil)
             }
             VStack(spacing: 12) {
                 ForEach(Array(question.choices.enumerated()), id: \.element) { index, choice in
@@ -65,7 +67,8 @@ struct QuizView: View {
         .background(Self.background.ignoresSafeArea())
     }
 
-    private func header(progress: Double) -> some View {
+    /// 上部のメーターは制限時間の残り（10秒で空になる）
+    private func header(remaining: Double) -> some View {
         HStack(spacing: 16) {
             Button {
                 commit()
@@ -83,17 +86,18 @@ struct QuizView: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color(uiColor: .systemGray4))
-                    Capsule().fill(.orange)
-                        .frame(width: geometry.size.width * progress)
+                    Capsule().fill(remaining > 0.3 ? Color.orange : Color.red)
+                        .frame(width: geometry.size.width * remaining)
                 }
             }
             .frame(height: 10)
-            .animation(.easeOut, value: progress)
+            .accessibilityLabel("残り時間")
+            .accessibilityValue("\(Int((remaining * 10).rounded(.up)))秒")
         }
         .padding(.top, 8)
     }
 
-    /// 英単語は常にカードの中心。問題番号は単語のすぐ上、解答後の例文はカード下部に重ねて表示し、単語の位置を動かさない
+    /// 英単語は常にカードの中心。問題番号は単語のすぐ上に重ねて表示し、単語の位置を動かさない
     private func card(_ question: QuizQuestion, session: QuizSession) -> some View {
         ZStack {
             Text(question.card.term)
@@ -113,20 +117,6 @@ struct QuizView: View {
                     .fixedSize()
                     .alignmentGuide(.top) { $0[.bottom] + 12 }
                 }
-            if let feedback {
-                VStack(spacing: 8) {
-                    Spacer()
-                    Text(feedback.isCorrect ? "正解！" : "正解は「\(feedback.correctAnswer)」")
-                        .font(.headline)
-                        .foregroundStyle(feedback.isCorrect ? .green : .red)
-                    Text(ContextHighlighter.attributed(sentence: question.card.contextSentence, highlight: question.card.highlight))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(4)
-                }
-                .transition(.opacity)
-            }
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -158,6 +148,29 @@ struct QuizView: View {
         withAnimation { feedback = session?.skip() }
     }
 
+    /// 10秒たっても解答がなければ不正解として扱う
+    private func runCountdown() async {
+        let start = ContinuousClock.now
+        remaining = 1
+        while !Task.isCancelled && feedback == nil {
+            remaining = QuizCountdown.remainingFraction(elapsed: ContinuousClock.now - start)
+            if remaining <= 0 {
+                selectedChoice = nil
+                withAnimation { feedback = session?.skip() }
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
+    /// ○×を少し見せてから自動で次の問題へ進む
+    private func advanceAfterReveal() async {
+        guard feedback != nil else { return }
+        try? await Task.sleep(for: QuizCountdown.revealDuration)
+        guard !Task.isCancelled else { return }
+        next()
+    }
+
     private func next() {
         session?.advance()
         feedback = nil
@@ -175,17 +188,16 @@ struct QuizView: View {
 
 private struct CircleButton: View {
     let title: String
-    var isProminent = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(title)
                 .font(.headline.weight(.bold))
-                .foregroundStyle(isProminent ? Color.white : Color.secondary)
+                .foregroundStyle(.secondary)
                 .frame(width: 64, height: 64)
-                .background(Circle().fill(isProminent ? Color.orange : QuizView.surface))
-                .overlay(Circle().stroke(QuizView.border, lineWidth: isProminent ? 0 : 2))
+                .background(Circle().fill(QuizView.surface))
+                .overlay(Circle().stroke(QuizView.border, lineWidth: 2))
         }
         .buttonStyle(.plain)
     }
@@ -206,9 +218,8 @@ private struct ChoiceButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 20) {
-                Text("\(number)")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                marker
+                    .frame(width: 34)
                 Text(text)
                     .font(.title3)
                     .foregroundStyle(.primary)
@@ -222,6 +233,29 @@ private struct ChoiceButton: View {
             .overlay(Capsule().stroke(stroke, lineWidth: 2))
         }
         .buttonStyle(.plain)
+    }
+
+    /// 解答前は番号、解答後は正解の番号を ○ で囲み、選んだ不正解は × にする
+    @ViewBuilder
+    private var marker: some View {
+        switch style {
+        case .normal:
+            Text("\(number)")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        case .correct:
+            Text("\(number)")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.green)
+                .frame(width: 34, height: 34)
+                .overlay(Circle().stroke(.green, lineWidth: 3))
+                .accessibilityLabel("正解 \(number)")
+        case .wrong:
+            Image(systemName: "xmark")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.red)
+                .accessibilityLabel("不正解")
+        }
     }
 
     private var fill: Color {
