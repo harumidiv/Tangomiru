@@ -12,5 +12,6 @@ struct BasicWordsTests {
         #expect(words.contains("the"))
         #expect(words.contains("run"))
         #expect(!words.contains("ubiquitous"))
+        #expect(words.isSuperset(of: ["their", "themselves", "whose"]))
     }
 }
