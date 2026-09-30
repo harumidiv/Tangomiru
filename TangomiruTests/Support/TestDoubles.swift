@@ -89,9 +89,26 @@ nonisolated struct FakeSentenceAnalyzer: SentenceAnalyzer {
 
 nonisolated struct FakeComprehensionGenerator: ComprehensionQuestionGenerator {
     var isAvailable = true
+    /// 要旨の問題。nil なら生成失敗として扱う
+    var gist: (@Sendable (String) throws -> ComprehensionQuestion)?
     let handler: @Sendable (String, Int) throws -> [ComprehensionQuestion]
+
+    init(
+        isAvailable: Bool = true,
+        gist: (@Sendable (String) throws -> ComprehensionQuestion)? = nil,
+        handler: @escaping @Sendable (String, Int) throws -> [ComprehensionQuestion]
+    ) {
+        self.isAvailable = isAvailable
+        self.gist = gist
+        self.handler = handler
+    }
 
     func generate(from passage: String, count: Int) async throws -> [ComprehensionQuestion] {
         try handler(passage, count)
+    }
+
+    func generateGist(from passage: String) async throws -> ComprehensionQuestion {
+        guard let gist else { throw FakeError() }
+        return try gist(passage)
     }
 }

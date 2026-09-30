@@ -1,15 +1,16 @@
 import Foundation
 import Observation
 
-/// 内容理解クイズの進行。最初のチャンクの問題ができたら出題を始め、残りは解いている間に作る
+/// 内容理解クイズの進行。保存済みの問題があればそれを出し、無ければ作りながら出す（最初の問題ができたら出題を始める）
 @Observable
 final class ComprehensionQuizModel {
-    static let attemptsPerChunk = 2
-
     let passage: String
     let plannedCount: Int
-    private let chunks: [String]
+    private let builder: ComprehensionBuilder
     private let generator: any ComprehensionQuestionGenerator
+    private let isPreloaded: Bool
+    /// その場で作った問題を保存するため、生成が終わったら呼ぶ
+    private let onGenerated: (([ComprehensionQuestion]) -> Void)?
 
     private(set) var questions: [ComprehensionQuestion] = []
     private(set) var index = 0
@@ -20,17 +21,27 @@ final class ComprehensionQuizModel {
     /// テストで生成の完了を待つため
     private(set) var generationTask: Task<Void, Never>?
 
-    init(passage: String, maxChunkLength: Int = ComprehensionPlanner.maxChunkLength, generator: any ComprehensionQuestionGenerator) {
-        let sentences = SentenceSplitter.sentences(in: passage)
+    /// preloaded（抽出時に作って保存した問題）があればそれを出し、無ければその場で作る
+    init(
+        passage: String,
+        preloaded: [ComprehensionQuestion] = [],
+        maxChunkLength: Int = ComprehensionPlanner.maxChunkLength,
+        generator: any ComprehensionQuestionGenerator,
+        onGenerated: (([ComprehensionQuestion]) -> Void)? = nil
+    ) {
+        let builder = ComprehensionBuilder(passage: passage, maxChunkLength: maxChunkLength)
         self.passage = passage
-        self.plannedCount = ComprehensionPlanner.questionCount(sentenceCount: sentences.count)
-        self.chunks = ComprehensionPlanner.chunks(of: sentences, maxLength: maxChunkLength)
+        self.builder = builder
+        self.plannedCount = preloaded.isEmpty ? builder.plannedCount : preloaded.count
         self.generator = generator
+        self.isPreloaded = !preloaded.isEmpty
+        self.onGenerated = onGenerated
+        self.questions = preloaded
     }
 
     /// 生成中は予定の問題数、生成後は実際に作れた問題数
     var totalCount: Int {
-        isGenerating || generationTask == nil ? plannedCount : questions.count
+        isGenerating || (generationTask == nil && !isPreloaded) ? plannedCount : questions.count
     }
 
     var current: ComprehensionQuestion? { questions.indices.contains(index) ? questions[index] : nil }
@@ -46,7 +57,7 @@ final class ComprehensionQuizModel {
     }
 
     func start() {
-        guard generationTask == nil else { return }
+        guard generationTask == nil, !isPreloaded else { return }
         generate()
     }
 
@@ -77,28 +88,13 @@ final class ComprehensionQuizModel {
 
     private func generate() {
         isGenerating = true
-        let plan = Array(zip(chunks, ComprehensionPlanner.questionsPerChunk(total: plannedCount, chunkCount: chunks.count)))
+        let builder = builder
         let generator = generator
-        let passage = passage
         generationTask = Task { [weak self] in
-            for (chunk, count) in plan where count > 0 {
-                var remaining = count
-                // 壊れた問題を捨てて足りなくなったら、足りない分だけ1回作り直す
-                for _ in 0..<Self.attemptsPerChunk where remaining > 0 {
-                    if Task.isCancelled { break }
-                    do {
-                        let generated = try await generator.generate(from: chunk, count: remaining)
-                        let valid = generated.compactMap { ComprehensionValidator.validated($0, passage: passage) }
-                            .prefix(remaining)
-                        self?.questions += valid
-                        remaining -= valid.count
-                    } catch {
-                        // このチャンクの問題は作れなかったので、残りのチャンクで続ける
-                        break
-                    }
-                }
-            }
-            self?.isGenerating = false
+            await builder.build(using: generator) { batch in self?.questions += batch }
+            guard let self else { return }
+            isGenerating = false
+            if !questions.isEmpty { onGenerated?(questions) }
         }
     }
 }

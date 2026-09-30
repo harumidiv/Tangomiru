@@ -7,8 +7,14 @@ struct ComprehensionQuizView: View {
     @State private var model: ComprehensionQuizModel
     @State private var isPassagePresented = false
 
-    init(passage: String) {
-        self.init(model: ComprehensionQuizModel(passage: passage, generator: FoundationModelsComprehensionGenerator()))
+    /// 抽出時に保存した問題があればそれを出し、無ければその場で作って保存する
+    init(passage: Passage) {
+        self.init(model: ComprehensionQuizModel(
+            passage: passage.body,
+            preloaded: passage.comprehensionQuestions,
+            generator: FoundationModelsComprehensionGenerator(),
+            onGenerated: { questions in passage.setComprehensionQuestions(questions) }
+        ))
     }
 
     /// プレビューなどで問題の作り方を差し替えるため

@@ -6,6 +6,7 @@ struct PassageInputView: View {
     @State private var title = ""
     @State private var bodyText = ""
     @State private var isExtracting = false
+    @State private var progressMessage = "単語を抽出中…"
     @State private var result: ExtractionResult?
     @State private var extractionTask: Task<Void, Never>?
 
@@ -31,7 +32,7 @@ struct PassageInputView: View {
             .disabled(isExtracting)
             .overlay {
                 if isExtracting {
-                    ProgressView("抽出中…")
+                    ProgressView(progressMessage)
                         .padding()
                         .background(.regularMaterial, in: .rect(cornerRadius: 12))
                 }
@@ -82,9 +83,16 @@ struct PassageInputView: View {
     private func startExtraction() {
         guard !isExtracting, let pipeline = services.makePipeline() else { return }
         isExtracting = true
+        progressMessage = "単語を抽出中…"
         let body = bodyText
         extractionTask = Task {
-            let extracted = await pipeline.run(body)
+            var extracted = await pipeline.run(body)
+            // Apple Intelligence 対応端末では、文章の内容を問う問題も一緒に作って保存する
+            let generator = FoundationModelsComprehensionGenerator()
+            if !Task.isCancelled && generator.isAvailable && !extracted.items.isEmpty {
+                progressMessage = "文章の質問を作成中…"
+                extracted.comprehension = await ComprehensionBuilder(passage: body).buildAll(using: generator)
+            }
             isExtracting = false
             guard !Task.isCancelled else { return }
             result = extracted

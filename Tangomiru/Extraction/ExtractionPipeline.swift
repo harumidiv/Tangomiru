@@ -4,6 +4,8 @@ nonisolated struct ExtractionResult: Hashable, Sendable {
     let items: [ExtractedItem]
     /// 1チャンク以上で AI の上乗せに成功したか
     let usedAI: Bool
+    /// 抽出と一緒に作った内容理解の問題（Apple Intelligence 対応端末のみ）
+    var comprehension: [ComprehensionQuestion] = []
 }
 
 nonisolated struct ExtractionPipeline: Sendable {

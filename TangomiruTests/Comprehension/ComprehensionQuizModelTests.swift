@@ -105,6 +105,48 @@ struct ComprehensionQuizModelTests {
         #expect(model.questions.count == 4)
     }
 
+    static let gistQuestion = ComprehensionQuestion(
+        question: "この文章は主に何について書かれていますか？", choices: ["文", "天気", "料理", "旅行"], answerIndex: 0, evidence: nil
+    )
+
+    @Test func gistQuestionComesFirstAndCountsTowardTotal() async {
+        let model = ComprehensionQuizModel(passage: Self.passage, maxChunkLength: 120, generator: FakeComprehensionGenerator(
+            gist: { _ in Self.gistQuestion },
+            handler: { _, count in Self.questions(count: count, tag: "d") }
+        ))
+        model.start()
+        await model.generationTask?.value
+        #expect(model.questions.first == Self.gistQuestion)
+        #expect(model.questions.count == 4)
+    }
+
+    @Test func preloadedQuestionsSkipGeneration() async {
+        let recorder = CallRecorder()
+        let preloaded = Self.questions(count: 3, tag: "saved")
+        let model = ComprehensionQuizModel(passage: Self.passage, preloaded: preloaded, generator: FakeComprehensionGenerator { chunk, count in
+            recorder.record([chunk])
+            return []
+        })
+        model.start()
+        await model.generationTask?.value
+        #expect(recorder.calls.isEmpty)
+        #expect(model.questions == preloaded)
+        #expect(model.totalCount == 3)
+        #expect(!model.hasFailed)
+    }
+
+    @Test func reportsGeneratedQuestionsWhenDone() async {
+        let reported = CallRecorder()
+        let model = ComprehensionQuizModel(
+            passage: Self.passage, maxChunkLength: 120,
+            generator: FakeComprehensionGenerator { _, count in Self.questions(count: count, tag: "g") },
+            onGenerated: { questions in reported.record(questions.map(\.question)) }
+        )
+        model.start()
+        await model.generationTask?.value
+        #expect(reported.calls == [model.questions.map(\.question)])
+    }
+
     @Test func invalidQuestionsAreDropped() async {
         let model = ComprehensionQuizModel(passage: Self.passage, maxChunkLength: 1_000, generator: FakeComprehensionGenerator { _, _ in
             [ComprehensionQuestion(question: "q", choices: ["a"], answerIndex: 0, evidence: nil)]

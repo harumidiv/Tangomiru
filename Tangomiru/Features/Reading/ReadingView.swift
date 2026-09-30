@@ -28,7 +28,7 @@ struct ReadingView: View {
         .navigationTitle("読解モード")
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $isComprehensionQuizPresented) {
-            ComprehensionQuizView(passage: passage.body)
+            ComprehensionQuizView(passage: passage)
         }
         .sheet(item: $selectedItem) { item in
             ItemDetailSheet(item: item)

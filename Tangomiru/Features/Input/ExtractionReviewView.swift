@@ -28,6 +28,22 @@ struct ExtractionReviewView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                if !result.comprehension.isEmpty {
+                    Section {
+                        ForEach(Array(result.comprehension.enumerated()), id: \.offset) { _, question in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(question.question).font(.subheadline.weight(.semibold))
+                                Text("正解: \(question.choices[question.answerIndex])")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    } header: {
+                        Text("文章の質問（\(result.comprehension.count)問）")
+                    } footer: {
+                        Text("読解モードの内容理解クイズで出題します")
+                    }
+                }
                 Section("\(result.items.count)語を抽出（出題ON \(enabled.filter { $0 }.count)語）") {
                     ForEach(result.items.indices, id: \.self) { index in
                         Toggle(isOn: $enabled[index]) {
@@ -60,6 +76,7 @@ struct ExtractionReviewView: View {
         let passage = Passage(title: title, body: passageBody, usedAI: result.usedAI)
         modelContext.insert(passage)
         passage.items = zip(result.items, enabled).map { VocabItem(extracted: $0, isEnabled: $1) }
+        passage.setComprehensionQuestions(result.comprehension)
         onSaved()
     }
 }

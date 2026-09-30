@@ -53,6 +53,20 @@ nonisolated struct FoundationModelsComprehensionGenerator: ComprehensionQuestion
         return ComprehensionQuestion(question: text, choices: choices, answerIndex: answerIndex, evidence: evidence)
     }
 
+    func generateGist(from passage: String) async throws -> ComprehensionQuestion {
+        let session = LanguageModelSession(instructions: Self.instructions)
+        let content = try await session.respond(
+            to: Self.gistPrompt(passage: passage),
+            generating: GeneratedComprehensionQuestion.self
+        ).content
+        var rng = SeededRandom()
+        return Self.question(text: content.question, correct: content.correctAnswer, wrong: content.wrongAnswers, evidence: content.evidence, using: &rng)
+    }
+
+    static func gistPrompt(passage: String) -> String {
+        "# 本文\n\(passage)\n# 作る問題\n文章全体が主に何について書かれているかを問う要旨の問題を1問（例: この文章は主に何について書かれていますか？）"
+    }
+
     static func prompt(passage: String, count: Int) -> String {
         "# 本文\n\(passage)\n# 作る問題の数\n\(count)問"
     }

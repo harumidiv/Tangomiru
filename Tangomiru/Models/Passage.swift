@@ -11,6 +11,8 @@ final class Passage {
     var usedAI: Bool
     @Relationship(deleteRule: .cascade, inverse: \VocabItem.passage)
     var items: [VocabItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \StoredComprehensionQuestion.passage)
+    var storedComprehension: [StoredComprehensionQuestion] = []
 
     init(title: String, body: String, usedAI: Bool, createdAt: Date = .now) {
         self.title = title
@@ -28,6 +30,15 @@ extension Passage {
     var stats: MasteryStats { MasteryStats(scores: enabledItems.map(\.score)) }
 
     var quizCards: [QuizCard] { enabledItems.map { $0.quizCard(body: body) } }
+
+    var comprehensionQuestions: [ComprehensionQuestion] {
+        storedComprehension.sorted { $0.order < $1.order }.map(\.value)
+    }
+
+    func setComprehensionQuestions(_ questions: [ComprehensionQuestion]) {
+        for old in storedComprehension { modelContext?.delete(old) }
+        storedComprehension = questions.enumerated().map { StoredComprehensionQuestion(order: $0.offset, question: $0.element) }
+    }
 
     func applyQuizResult(_ changes: [ScoreChange], at date: Date = .now) {
         let itemsByID = Dictionary(items.map { ($0.uuid, $0) }, uniquingKeysWith: { first, _ in first })

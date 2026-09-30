@@ -1,7 +1,7 @@
 import Foundation
 
 /// 本文の内容を問う4択問題（AI が作り、表示前に ComprehensionValidator で検査する）
-nonisolated struct ComprehensionQuestion: Equatable, Sendable {
+nonisolated struct ComprehensionQuestion: Hashable, Sendable {
     var question: String
     var choices: [String]
     var answerIndex: Int
@@ -13,6 +13,8 @@ nonisolated struct ComprehensionQuestion: Equatable, Sendable {
 nonisolated protocol ComprehensionQuestionGenerator: Sendable {
     var isAvailable: Bool { get }
     func generate(from passage: String, count: Int) async throws -> [ComprehensionQuestion]
+    /// 文章全体の要旨を問う問題（「この文章は主に何について書かれていますか？」など）
+    func generateGist(from passage: String) async throws -> ComprehensionQuestion
 }
 
 nonisolated enum ComprehensionValidator {
