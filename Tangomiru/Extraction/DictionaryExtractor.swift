@@ -74,7 +74,7 @@ nonisolated struct DictionaryExtractor: Sendable {
         guard !token.isProperNoun, Self.isWordLike(token.lemma),
               !basicWords.contains(token.lemma), !basicWords.contains(surface) else { return nil }
         for key in [token.lemma, surface] {
-            if let meaning = dictionary.meaning(for: key) {
+            if let meaning = dictionary.meaning(for: key, partOfSpeech: token.partOfSpeech) {
                 return Match(term: key, meaning: meaning, length: 1)
             }
         }

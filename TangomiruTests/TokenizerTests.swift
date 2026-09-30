@@ -48,6 +48,13 @@ struct TokenizerTests {
         #expect(tokenizer.tokenize("ice cream").tokens.first?.followsPreviousDirectly == false)
     }
 
+    @Test func tagsPartOfSpeech() {
+        let result = tokenizer.tokenize("She runs every day. It was a beautiful run.")
+        #expect(token("runs", in: result)?.partOfSpeech == .verb)
+        #expect(token("run", in: result)?.partOfSpeech == .noun)
+        #expect(token("beautiful", in: result)?.partOfSpeech == .adjective)
+    }
+
     @Test func omitsPunctuationAndWhitespace() {
         let result = tokenizer.tokenize("Hello, world!")
         #expect(result.tokens.map(\.surface) == ["Hello", "world"])

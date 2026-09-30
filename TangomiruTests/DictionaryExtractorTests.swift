@@ -5,7 +5,7 @@ struct DictionaryExtractorTests {
     let dictionary = FakeDictionary(entries: [
         "ice cream": "アイスクリーム", "ice cream soda": "クリームソーダ",
         "ice": "氷", "cream": "クリーム", "soda": "ソーダ",
-        "run": "走る", "grant": "許可する", "for granted": "当然のこととして",
+        "run": "走る", "run#noun": "走ること", "grant": "許可する", "for granted": "当然のこととして",
         "ubiquitous": "至る所にある", "tokyo": "東京", "apple": "りんご", "the": "その", "n't": "否定", "ca": "circa",
     ])
 
@@ -42,6 +42,11 @@ struct DictionaryExtractorTests {
         #expect(items.map(\.term) == ["run"])
         #expect(items[0].meaning == "走る")
         #expect(items[0].source == .dictionary)
+    }
+
+    @Test func passesPartOfSpeechToDictionary() {
+        #expect(extract(["run:noun"]).map(\.meaning) == ["走ること"])
+        #expect(extract(["runs/run:verb"]).map(\.meaning) == ["走る"])
     }
 
     @Test func excludesBasicProperNounsNumbersAndUnknown() {

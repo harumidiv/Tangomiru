@@ -5,7 +5,11 @@ import Synchronization
 nonisolated struct FakeDictionary: WordDictionary {
     var entries: [String: String]
 
-    func meaning(for key: String) -> String? { entries[key] }
+    /// "run#noun" のように品詞付きのキーがあればそれを優先する
+    func meaning(for key: String, partOfSpeech: PartOfSpeech?) -> String? {
+        if let partOfSpeech, let meaning = entries["\(key)#\(partOfSpeech.rawValue)"] { return meaning }
+        return entries[key]
+    }
 
     func randomMeanings(count: Int, using rng: inout SeededRandom) -> [String] {
         Array(entries.values.sorted().prefix(count))
@@ -13,7 +17,7 @@ nonisolated struct FakeDictionary: WordDictionary {
 }
 
 /// トークン列を手で組み立てる。
-/// "ran/run" は原形指定、"Tokyo*" は固有名詞、"," は句読点（次の語は直結しない）、"." は文の区切り。
+/// "ran/run" は原形指定、"Tokyo*" は固有名詞、"run:noun" は品詞指定、"," は句読点（次の語は直結しない）、"." は文の区切り。
 nonisolated func tokenized(_ specs: [String], sentences: [String] = ["context"]) -> TokenizedText {
     var tokens: [Token] = []
     var location = 0
@@ -27,6 +31,11 @@ nonisolated func tokenized(_ specs: [String], sentences: [String] = ["context"])
             continue
         }
         var text = spec
+        var partOfSpeech = PartOfSpeech.other
+        if let colon = text.firstIndex(of: ":") {
+            partOfSpeech = PartOfSpeech(rawValue: String(text[text.index(after: colon)...])) ?? .other
+            text = String(text[..<colon])
+        }
         let isProper = text.hasSuffix("*")
         if isProper { text.removeLast() }
         let parts = text.split(separator: "/", maxSplits: 1).map(String.init)
@@ -39,7 +48,8 @@ nonisolated func tokenized(_ specs: [String], sentences: [String] = ["context"])
             span: TextSpan(location: location, length: length),
             sentenceIndex: sentence,
             isProperNoun: isProper,
-            followsPreviousDirectly: !afterBreak
+            followsPreviousDirectly: !afterBreak,
+            partOfSpeech: partOfSpeech
         ))
         location += length + 1
         afterBreak = false

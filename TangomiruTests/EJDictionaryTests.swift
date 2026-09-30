@@ -3,7 +3,7 @@ import Testing
 
 struct EJDictionaryTests {
     let dictionary = EJDictionary(tsv: """
-    run\t『走る』,駆ける / 〈人が〉(…に)『急ぐ』,突進する《+『for』(『to』)+『名』》 / 〈C〉『走ること』
+    run\t『走る』,駆ける / 〈人が〉(…に)『急ぐ』,突進する《+『for』(『to』)+『名』》 / 〈C〉『走ること』,駆け足
     A,a,an\tanswer / ampere
     Polish\tポーランドの
     polish\t…を磨く
@@ -13,16 +13,17 @@ struct EJDictionaryTests {
     """)
 
     @Test func formatsMeaning() {
-        #expect(dictionary.meaning(for: "run") == "走る,駆ける / 〈人が〉(…に)急ぐ,突進する")
+        #expect(dictionary.meaning(for: "run") == "走る")
+        #expect(dictionary.meaning(for: "run", partOfSpeech: .noun) == "走ること")
     }
 
     @Test func splitsCommaSeparatedHeadwords() {
-        #expect(dictionary.meaning(for: "an") == "answer / ampere")
-        #expect(dictionary.meaning(for: "a") == "answer / ampere")
+        #expect(dictionary.meaning(for: "an") == "answer")
+        #expect(dictionary.meaning(for: "a") == "answer")
     }
 
     @Test func prefersLowercaseHeadword() {
-        #expect(dictionary.meaning(for: "polish") == "…を磨く")
+        #expect(dictionary.meaning(for: "polish") == "磨く")
     }
 
     @Test func ignoresHeadwordsWithoutLowercaseForm() {

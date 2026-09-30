@@ -1,10 +1,16 @@
 import Foundation
 
 nonisolated protocol WordDictionary: Sendable {
-    /// 小文字の見出し語（熟語は半角スペース区切り）で引き、表示用に整形した訳を返す
-    func meaning(for key: String) -> String?
+    /// 小文字の見出し語（熟語は半角スペース区切り）で引き、本文での品詞に合う意味を1つ返す
+    func meaning(for key: String, partOfSpeech: PartOfSpeech?) -> String?
     /// 誤答の補充用に、単語（熟語以外）の訳をランダムに返す
     func randomMeanings(count: Int, using rng: inout SeededRandom) -> [String]
+}
+
+extension WordDictionary {
+    func meaning(for key: String) -> String? {
+        meaning(for: key, partOfSpeech: nil)
+    }
 }
 
 nonisolated enum ResourceError: Error, Equatable {
@@ -43,9 +49,9 @@ nonisolated struct EJDictionary: WordDictionary {
 
     var count: Int { rawEntries.count }
 
-    func meaning(for key: String) -> String? {
+    func meaning(for key: String, partOfSpeech: PartOfSpeech?) -> String? {
         guard let raw = rawEntries[key] else { return nil }
-        let formatted = MeaningFormatter.format(raw)
+        let formatted = MeaningFormatter.format(raw, partOfSpeech: partOfSpeech)
         return formatted.isEmpty ? nil : formatted
     }
 
