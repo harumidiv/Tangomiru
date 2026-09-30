@@ -4,6 +4,8 @@ struct PassageDetailView: View {
     let passage: Passage
     @AppStorage("quizLength") private var quizLengthRaw = QuizLength.ten.rawValue
     @State private var isQuizPresented = false
+    @State private var isStudyPresented = false
+    private let isSentenceStudyAvailable = FoundationModelsSentenceAnalyzer().isAvailable
 
     private var quizLength: Binding<QuizLength> {
         Binding(
@@ -46,6 +48,14 @@ struct PassageDetailView: View {
                 }
             }
             Section {
+                Button("1文ずつ学ぶ", systemImage: "text.book.closed") { isStudyPresented = true }
+                    .disabled(!isSentenceStudyAvailable)
+            } footer: {
+                Text(isSentenceStudyAvailable
+                     ? "1文ずつ読んで、和訳・文の構造・文法ポイントを確認します"
+                     : "Apple Intelligence 対応端末で使えます")
+            }
+            Section {
                 NavigationLink {
                     ReadingView(passage: passage)
                 } label: {
@@ -60,6 +70,9 @@ struct PassageDetailView: View {
         }
         .navigationTitle(passage.title)
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $isStudyPresented) {
+            SentenceStudyView(passage: passage)
+        }
         .fullScreenCover(isPresented: $isQuizPresented) {
             QuizView(passage: passage, length: quizLength.wrappedValue)
         }
