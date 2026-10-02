@@ -17,6 +17,10 @@ struct TangomiruApp: App {
             LibraryView()
                 .environment(services)
                 .task { await services.load() }
+                .task {
+                    await AdConsent.prepare()
+                    services.extractionAd.preload()
+                }
         }
         .modelContainer(for: [Passage.self, CustomSource.self])
     }

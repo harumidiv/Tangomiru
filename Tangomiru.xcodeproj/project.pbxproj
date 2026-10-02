@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2CC1CAD699814B47EC270CB6 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 1D433D68964BB5FC44C34B4D /* GoogleMobileAds */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		05E79FDA306C72C100640B04 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2CC1CAD699814B47EC270CB6 /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +95,7 @@
 			);
 			name = Tangomiru;
 			packageProductDependencies = (
+				1D433D68964BB5FC44C34B4D /* GoogleMobileAds */,
 			);
 			productName = Tangomiru;
 			productReference = 05E79FC2306C72C000640B04 /* Tangomiru.app */;
@@ -112,8 +118,6 @@
 				05E79FD2306C72C100640B04 /* TangomiruTests */,
 			);
 			name = TangomiruTests;
-			packageProductDependencies = (
-			);
 			productName = TangomiruTests;
 			productReference = 05E79FD1306C72C100640B04 /* TangomiruTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -146,6 +150,9 @@
 			);
 			mainGroup = 05E79FB9306C72C000640B04;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7F4A682D74759496BF2A4C65 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 05E79FC3306C72C000640B04 /* Products */;
 			projectDirPath = "";
@@ -330,8 +337,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 24BSY9Z4H5;
 				ENABLE_PREVIEWS = YES;
+				GAD_APPLICATION_IDENTIFIER = "ca-app-pub-3940256099942544~1458002511";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Tangomiru-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "タンゴミル";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "あなたに合った広告を表示するために使用します。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -342,6 +352,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = harumidiv.Tangomiru;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -363,8 +377,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 24BSY9Z4H5;
 				ENABLE_PREVIEWS = YES;
+				GAD_APPLICATION_IDENTIFIER = "ca-app-pub-8522231452310619~4211205101";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Tangomiru-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "タンゴミル";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "あなたに合った広告を表示するために使用します。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -375,6 +392,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = harumidiv.Tangomiru;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -464,6 +485,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7F4A682D74759496BF2A4C65 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.11.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1D433D68964BB5FC44C34B4D /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7F4A682D74759496BF2A4C65 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 05E79FBA306C72C000640B04 /* Project object */;
 }
