@@ -83,7 +83,8 @@ private struct AddCustomSourceView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("https://example.com", text: $urlText)
+                    // 文字列リテラルだと URL がリンクとして青く表示されるので、verbatim の見本にする
+                    TextField("URL", text: $urlText, prompt: Text(verbatim: "https://example.com"))
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
