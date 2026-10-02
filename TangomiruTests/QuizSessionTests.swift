@@ -21,8 +21,8 @@ struct QuizSessionTests {
     @Test func correctFirstAnswerRaisesScore() {
         let card = makeCard("a", score: nil)
         var s = session([card])
-        let feedback = s.answer("aの意味")
-        #expect(feedback == AnswerFeedback(isCorrect: true, correctAnswer: "aの意味"))
+        let feedback = s.answer("aのいみ")
+        #expect(feedback == AnswerFeedback(isCorrect: true, correctAnswer: "aのいみ"))
         #expect(s.changes == [ScoreChange(cardID: card.id, term: "a", before: nil, after: 1)])
         s.advance()
         #expect(s.isFinished)
@@ -65,7 +65,7 @@ struct QuizSessionTests {
 
     @Test func answeringTwiceCountsOnce() {
         var s = session([makeCard("a", score: nil)])
-        s.answer("aの意味")
+        s.answer("aのいみ")
         let second = s.answer("wrong")
         #expect(second.isCorrect)
         #expect(s.changes.count == 1)
@@ -88,7 +88,7 @@ struct QuizSessionTests {
 
     @Test func skipAfterAnswerIsIgnored() {
         var s = session([makeCard("a", score: nil)])
-        s.answer("aの意味")
+        s.answer("aのいみ")
         let feedback = s.skip()
         #expect(feedback.isCorrect)
         #expect(s.changes.map(\.after) == [1])
@@ -97,9 +97,9 @@ struct QuizSessionTests {
     @Test func usesWholePassageMeaningsForDistractorsWhenGiven() {
         let s = QuizSession(
             cards: [makeCard("only", score: nil)], length: .all,
-            passageMeanings: ["onlyの意味", "訳A", "訳B", "訳C"], fallbackMeanings: [], rng: SeededRandom(seed: 3)
+            passageMeanings: ["onlyのいみ", "訳A", "訳B", "訳C"], fallbackMeanings: [], rng: SeededRandom(seed: 3)
         )
-        #expect(Set(s.current!.choices) == ["onlyの意味", "訳A", "訳B", "訳C"])
+        #expect(Set(s.current!.choices) == ["onlyのいみ", "訳A", "訳B", "訳C"])
     }
 
     @Test func emptyCardsFinishImmediately() {

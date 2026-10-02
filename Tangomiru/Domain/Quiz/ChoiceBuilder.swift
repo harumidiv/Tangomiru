@@ -5,6 +5,7 @@ nonisolated enum ChoiceBuilder {
 
     /// 正解1つ＋誤答をシャッフルして返す。
     /// 誤答の優先順: AI 生成の誤答 → 同じ英文の別の語の訳 → 辞書のランダムな訳。
+    /// 正解と漢字を共有する候補（例: 反応する／応答する）は意味が近すぎるので使わない。
     /// 候補が足りない場合は4つ未満になる（正解は必ず1つだけ含む）。
     static func choices(
         for card: QuizCard,
@@ -19,9 +20,20 @@ nonisolated enum ChoiceBuilder {
         var wrong: [String] = []
         for candidate in candidates where wrong.count < choiceCount - 1 {
             let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else { continue }
+            guard !trimmed.isEmpty, !sharesKanji(trimmed, with: card.meaning),
+                  seen.insert(trimmed).inserted else { continue }
             wrong.append(trimmed)
         }
         return ([card.meaning] + wrong).shuffled(using: &rng)
+    }
+
+    static func sharesKanji(_ candidate: String, with meaning: String) -> Bool {
+        !kanji(in: candidate).isDisjoint(with: kanji(in: meaning))
+    }
+
+    private static func kanji(in text: String) -> Set<Character> {
+        Set(text.filter { character in
+            character.unicodeScalars.allSatisfy { (0x4E00...0x9FFF).contains($0.value) || $0.value == 0x3005 }
+        })
     }
 }
