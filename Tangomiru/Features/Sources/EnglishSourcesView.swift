@@ -16,7 +16,9 @@ struct EnglishSourcesView: View {
             }
             Section("マイサイト") {
                 if customSources.isEmpty {
+                    // 登録済みのリンクと見分けがつくよう、青ではなくグレーで出す
                     Button("よく使うサイトを追加", systemImage: "plus") { isAddingSource = true }
+                        .foregroundStyle(.secondary)
                 } else {
                     ForEach(customSources) { source in
                         SourceRow(name: source.name, summary: source.url.host() ?? source.url.absoluteString, url: source.url)
