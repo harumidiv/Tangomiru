@@ -25,13 +25,14 @@ final class AppServices {
     private var dictionary: EJDictionary?
     private var basicWords: Set<String> = []
 
-    init() {
+    /// adsEnabled が false なら広告を一切出さない（スクリーンショットの撮影モード用）
+    init(adsEnabled: Bool = true) {
         // 広告なしプランの間はどちらの広告も読み込まない・出さない
         let purchases = purchases
-        extractionAd = AdFreeGatedPresenter(base: GoogleInterstitialAdPresenter()) { purchases.isAdFree }
+        extractionAd = AdFreeGatedPresenter(base: GoogleInterstitialAdPresenter()) { !adsEnabled || purchases.isAdFree }
         quizResultAd = AdFreeGatedPresenter(
             base: GoogleInterstitialAdPresenter(adUnitID: AdConfig.quizResultInterstitialUnitID)
-        ) { purchases.isAdFree }
+        ) { !adsEnabled || purchases.isAdFree }
     }
 
     func load() async {

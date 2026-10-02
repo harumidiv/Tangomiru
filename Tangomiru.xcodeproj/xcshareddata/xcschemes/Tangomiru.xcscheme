@@ -39,6 +39,17 @@
                ReferencedContainer = "container:Tangomiru.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A5114B4AC282131E76131E04"
+               BuildableName = "TangomiruUITests.xctest"
+               BlueprintName = "TangomiruUITests"
+               ReferencedContainer = "container:Tangomiru.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
