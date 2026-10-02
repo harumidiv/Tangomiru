@@ -104,6 +104,12 @@ struct PassageInputView: View {
         extractionTask = Task {
             // 抽出の待ち時間に広告を出す（広告を閉じても抽出中なら進捗の表示が残る）
             let extracted = await ExtractionWithAd.run(ad: services.extractionAd) {
+                #if DEBUG
+                if let demo = ScreenshotSamples.demoExtraction(for: body) {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    return demo
+                }
+                #endif
                 var extracted = await pipeline.run(body)
                 // Apple Intelligence 対応端末では、文章の内容を問う問題も一緒に作って保存する
                 let generator = FoundationModelsComprehensionGenerator()
