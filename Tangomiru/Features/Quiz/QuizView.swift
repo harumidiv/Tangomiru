@@ -6,6 +6,7 @@ struct QuizView: View {
     @Environment(\.dismiss) private var dismiss
     let passage: Passage
     let length: QuizLength
+    var scope: QuizScope = .auto
     @State private var session: QuizSession?
     @State private var feedback: AnswerFeedback?
     @State private var selectedChoice: String?
@@ -45,7 +46,10 @@ struct QuizView: View {
         .task {
             guard session == nil else { return }
             session = QuizSession(
-                cards: passage.quizCards, length: length, fallbackMeanings: services.fallbackMeanings()
+                cards: scope.cards(from: passage.quizCards),
+                length: length,
+                passageMeanings: passage.items.map(\.meaning),
+                fallbackMeanings: services.fallbackMeanings()
             )
             if session?.isFinished == true { commit() }
         }

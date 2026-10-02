@@ -42,10 +42,20 @@ nonisolated struct QuizSession: Sendable {
     /// 間違えた（時間切れ・SKIP を含む）語（解答順）
     private(set) var wrongCards: [QuizCard] = []
 
-    init(cards: [QuizCard], length: QuizLength, fallbackMeanings: [String], rng: SeededRandom = SeededRandom()) {
+    /// passageMeanings は誤答の候補にする英文全体の訳（出題範囲で cards を絞り込んだときに渡す。省略時は cards の訳）
+    init(
+        cards: [QuizCard],
+        length: QuizLength,
+        passageMeanings: [String]? = nil,
+        fallbackMeanings: [String],
+        rng: SeededRandom = SeededRandom()
+    ) {
         var rng = rng
         let selected = QuizPlanner.select(from: cards, length: length, using: &rng)
-        self.init(queue: selected, passageMeanings: cards.map(\.meaning), fallbackMeanings: fallbackMeanings, isReview: false, rng: rng)
+        self.init(
+            queue: selected, passageMeanings: passageMeanings ?? cards.map(\.meaning),
+            fallbackMeanings: fallbackMeanings, isReview: false, rng: rng
+        )
     }
 
     /// 間違えた語だけを出題する復習の回。誤答候補には英文全体の訳を使う

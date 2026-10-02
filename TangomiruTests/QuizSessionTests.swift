@@ -94,6 +94,14 @@ struct QuizSessionTests {
         #expect(s.changes.map(\.after) == [1])
     }
 
+    @Test func usesWholePassageMeaningsForDistractorsWhenGiven() {
+        let s = QuizSession(
+            cards: [makeCard("only", score: nil)], length: .all,
+            passageMeanings: ["onlyの意味", "訳A", "訳B", "訳C"], fallbackMeanings: [], rng: SeededRandom(seed: 3)
+        )
+        #expect(Set(s.current!.choices) == ["onlyの意味", "訳A", "訳B", "訳C"])
+    }
+
     @Test func emptyCardsFinishImmediately() {
         let s = session([])
         #expect(s.isFinished)
