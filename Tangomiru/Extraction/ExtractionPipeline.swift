@@ -30,6 +30,7 @@ nonisolated struct ExtractionPipeline: Sendable {
             return ExtractionResult(items: items, usedAI: false)
         }
 
+        let dictionaryMeanings = items.map(\.meaning)
         var usedAI = false
         var idioms: [EnrichedEntry] = []
         for start in stride(from: 0, to: items.count, by: Self.chunkSize) {
@@ -57,6 +58,7 @@ nonisolated struct ExtractionPipeline: Sendable {
             }
         }
 
+        Self.resolveDuplicateMeanings(&items, dictionaryMeanings: dictionaryMeanings)
         let existingTerms = Set(items.map { $0.term.lowercased() })
         items += Self.validatedIdioms(idioms, body: body, sentences: tokenized.sentences, existingTerms: existingTerms)
         items.sort { $0.firstLocation < $1.firstLocation }
@@ -68,6 +70,21 @@ nonisolated struct ExtractionPipeline: Sendable {
         let meaning = MeaningFormatter.single(entry.meaning)
         if !meaning.isEmpty { item.meaning = meaning }
         item.distractors = cleanedDistractors(entry.distractors, excluding: item.meaning)
+    }
+
+    /// AI が別々の語に同じ訳を付けた場合（例: return と dividend が両方「配当」）、
+    /// 辞書の訳と一致する語はその訳を残し、それ以外は辞書の訳に戻す。
+    /// どれも辞書と一致しなければ、本文で最初に出てきた語だけ AI の訳を残す
+    static func resolveDuplicateMeanings(_ items: inout [ExtractedItem], dictionaryMeanings: [String]) {
+        let groups = Dictionary(grouping: items.indices, by: { items[$0].meaning })
+        for (meaning, indices) in groups where indices.count > 1 {
+            let ordered = indices.sorted { items[$0].firstLocation < items[$1].firstLocation }
+            let keeper = ordered.first { dictionaryMeanings[$0] == meaning } ?? ordered[0]
+            for index in ordered where index != keeper {
+                items[index].meaning = dictionaryMeanings[index]
+                items[index].distractors = cleanedDistractors(items[index].distractors, excluding: items[index].meaning)
+            }
+        }
     }
 
     static func cleanedDistractors(_ raw: [String], excluding meaning: String) -> [String] {
