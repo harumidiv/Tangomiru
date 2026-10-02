@@ -20,6 +20,7 @@ struct TangomiruApp: App {
                 .task {
                     await AdConsent.prepare()
                     services.extractionAd.preload()
+                    services.quizResultAd.preload()
                 }
         }
         .modelContainer(for: [Passage.self, CustomSource.self])

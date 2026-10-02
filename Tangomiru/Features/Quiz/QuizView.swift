@@ -44,6 +44,7 @@ struct QuizView: View {
         .onChange(of: feedback) { _, feedback in
             if let feedback { soundPlayer.play(correct: feedback.isCorrect) }
         }
+        .onAppear { services.quizResultAd.preload() }
         .onDisappear { speaker.stop() }
         .task {
             guard session == nil else { return }
@@ -207,7 +208,18 @@ struct QuizView: View {
         session?.advance()
         feedback = nil
         selectedChoice = nil
-        if session?.isFinished == true { commit() }
+        if session?.isFinished == true {
+            commit()
+            showResultAd()
+        }
+    }
+
+    /// 解き終えたら結果画面の上に広告を出す（閉じると結果画面が見える）
+    private func showResultAd() {
+        Task {
+            await services.quizResultAd.presentIfReady()
+            services.quizResultAd.preload()
+        }
     }
 
     /// 解答済みの分のスコアを保存する（途中で閉じた場合も反映）

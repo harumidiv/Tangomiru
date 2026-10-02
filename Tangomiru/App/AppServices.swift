@@ -18,6 +18,8 @@ final class AppServices {
     private(set) var status: Status = .loading
     /// 英文の抽出中に出す全画面広告（アプリ全体で1つを使い回す）
     let extractionAd: any InterstitialAdPresenting = GoogleInterstitialAdPresenter()
+    /// クイズを解き終わったときに出す全画面広告（静止画のみ）
+    let quizResultAd: any InterstitialAdPresenting = GoogleInterstitialAdPresenter(adUnitID: AdConfig.quizResultInterstitialUnitID)
     private var dictionary: EJDictionary?
     private var basicWords: Set<String> = []
 
