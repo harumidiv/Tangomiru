@@ -6,6 +6,8 @@ struct EnglishSourcesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CustomSource.createdAt) private var customSources: [CustomSource]
     @State private var isAddingSource = false
+    /// シートで開いたときだけ渡す（「閉じる」ボタンを出す）。画面遷移で開いたときは戻るボタンがあるので nil
+    var onClose: (() -> Void)?
 
     var body: some View {
         List {
@@ -39,6 +41,11 @@ struct EnglishSourcesView: View {
         .navigationTitle("英文を探す")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if let onClose {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる", action: onClose)
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button("サイトを追加", systemImage: "plus") { isAddingSource = true }
             }

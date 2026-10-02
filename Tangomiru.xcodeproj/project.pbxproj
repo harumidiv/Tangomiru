@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05E7A450306F747000640B04 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05E7A44F306F747000640B04 /* StoreKit.framework */; };
 		2CC1CAD699814B47EC270CB6 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 1D433D68964BB5FC44C34B4D /* GoogleMobileAds */; };
 /* End PBXBuildFile section */
 
@@ -23,6 +24,8 @@
 /* Begin PBXFileReference section */
 		05E79FC2306C72C000640B04 /* Tangomiru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tangomiru.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		05E79FD1306C72C100640B04 /* TangomiruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TangomiruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		05E7A44F306F747000640B04 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		05E7A451306F79B400640B04 /* Tangomiru.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Tangomiru.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -44,6 +47,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2CC1CAD699814B47EC270CB6 /* GoogleMobileAds in Frameworks */,
+				05E7A450306F747000640B04 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,8 +64,10 @@
 		05E79FB9306C72C000640B04 = {
 			isa = PBXGroup;
 			children = (
+				05E7A451306F79B400640B04 /* Tangomiru.storekit */,
 				05E79FC4306C72C000640B04 /* Tangomiru */,
 				05E79FD2306C72C100640B04 /* TangomiruTests */,
+				05E7A44E306F747000640B04 /* Frameworks */,
 				05E79FC3306C72C000640B04 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -73,6 +79,14 @@
 				05E79FD1306C72C100640B04 /* TangomiruTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		05E7A44E306F747000640B04 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				05E7A44F306F747000640B04 /* StoreKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
