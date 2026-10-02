@@ -6,12 +6,15 @@ struct QuizView: View {
     @Environment(\.dismiss) private var dismiss
     let passage: Passage
     let length: QuizLength
+    var scope: QuizScope = .auto
     @State private var session: QuizSession?
     @State private var feedback: AnswerFeedback?
     @State private var selectedChoice: String?
     @State private var isCommitted = false
     /// 制限時間の残り割合（1 → 0）
     @State private var remaining = 1.0
+    /// 今の問題が表示された時刻（解答までの時間を測る）
+    @State private var questionStart = ContinuousClock.now
     /// 復習の回を始めるたびに増やし、タイマーを確実にリセットする
     @State private var round = 0
     @State private var speaker = WordSpeaker()
@@ -41,11 +44,15 @@ struct QuizView: View {
         .onChange(of: feedback) { _, feedback in
             if let feedback { soundPlayer.play(correct: feedback.isCorrect) }
         }
+        .onAppear { services.quizResultAd.preload() }
         .onDisappear { speaker.stop() }
         .task {
             guard session == nil else { return }
             session = QuizSession(
-                cards: passage.quizCards, length: length, fallbackMeanings: services.fallbackMeanings()
+                cards: scope.cards(from: passage.quizCards),
+                length: length,
+                passageMeanings: passage.items.map(\.meaning),
+                fallbackMeanings: services.fallbackMeanings()
             )
             if session?.isFinished == true { commit() }
         }
@@ -147,7 +154,8 @@ struct QuizView: View {
     private func answer(_ choice: String) {
         guard feedback == nil else { return }
         selectedChoice = choice
-        withAnimation { feedback = session?.answer(choice) }
+        let elapsed = ContinuousClock.now - questionStart
+        withAnimation { feedback = session?.answer(choice, elapsed: elapsed) }
     }
 
     private func skip() {
@@ -161,6 +169,7 @@ struct QuizView: View {
         // 問題が表示されたら英単語を読み上げる
         if let term = session?.current?.card.term { speaker.speak(term) }
         let start = ContinuousClock.now
+        questionStart = start
         remaining = 1
         while !Task.isCancelled && feedback == nil {
             remaining = QuizCountdown.remainingFraction(elapsed: ContinuousClock.now - start)
@@ -199,7 +208,18 @@ struct QuizView: View {
         session?.advance()
         feedback = nil
         selectedChoice = nil
-        if session?.isFinished == true { commit() }
+        if session?.isFinished == true {
+            commit()
+            showResultAd()
+        }
+    }
+
+    /// 解き終えたら結果画面の上に広告を出す（閉じると結果画面が見える）
+    private func showResultAd() {
+        Task {
+            await services.quizResultAd.presentIfReady()
+            services.quizResultAd.preload()
+        }
     }
 
     /// 解答済みの分のスコアを保存する（途中で閉じた場合も反映）

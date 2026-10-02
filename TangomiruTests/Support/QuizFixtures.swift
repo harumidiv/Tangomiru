@@ -5,7 +5,7 @@ nonisolated func makeCard(_ term: String, score: Int?, distractors: [String] = [
     QuizCard(
         id: UUID(),
         term: term,
-        meaning: "\(term)の意味",
+        meaning: "\(term)のいみ",
         distractors: distractors,
         contextSentence: "This is \(term).",
         highlight: term,

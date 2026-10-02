@@ -126,6 +126,27 @@ struct ExtractionPipelineTests {
         #expect(result.items.count == 20)
     }
 
+    @Test func keepsDictionaryMatchWhenAIGivesSameMeaningToTwoWords() async {
+        let dictionary = FakeDictionary(entries: ["return": "帰って来ること", "dividend": "配当"])
+        let enricher = FakeEnricher { inputs, _ in
+            EnrichmentOutput(words: inputs.map { EnrichedEntry(term: $0.term, meaning: "配当", distractors: []) }, idioms: [])
+        }
+        let pipeline = ExtractionPipeline(extractor: DictionaryExtractor(dictionary: dictionary, basicWords: []), enricher: enricher)
+        let result = await pipeline.run("The return and the dividend grew.")
+        let meanings = Dictionary(uniqueKeysWithValues: result.items.map { ($0.term, $0.meaning) })
+        #expect(meanings == ["return": "帰って来ること", "dividend": "配当"])
+    }
+
+    @Test func keepsFirstWordWhenNoDuplicateMatchesDictionary() async {
+        let dictionary = FakeDictionary(entries: ["abyss": "深淵", "ballad": "物語詩"])
+        let enricher = FakeEnricher { inputs, _ in
+            EnrichmentOutput(words: inputs.map { EnrichedEntry(term: $0.term, meaning: "同じ訳", distractors: []) }, idioms: [])
+        }
+        let pipeline = ExtractionPipeline(extractor: DictionaryExtractor(dictionary: dictionary, basicWords: []), enricher: enricher)
+        let result = await pipeline.run("An abyss and a ballad.")
+        #expect(result.items.map(\.meaning) == ["同じ訳", "物語詩"])
+    }
+
     @Test func emptyTextGivesNoItems() async {
         let result = await pipeline(FakeEnricher { inputs, _ in Self.aiOutput(for: inputs) }).run("the a an")
         #expect(result.items.isEmpty)

@@ -64,7 +64,10 @@ struct PassageInputView: View {
                         .disabled(problem != nil || isExtracting || !services.status.isReady)
                 }
             }
-            .onDisappear { extractionTask?.cancel() }
+            // 全画面広告が重なると onDisappear が呼ばれるため、そこではキャンセルしない。
+            // 抽出中はスワイプで閉じられないようにし、止めるのは「キャンセル」ボタンだけにする
+            .interactiveDismissDisabled(isExtracting)
+            .onAppear { services.extractionAd.preload() }
             .navigationDestination(item: $result) { result in
                 ExtractionReviewView(
                     title: PassageInput.title(title, body: bodyText),
@@ -99,12 +102,16 @@ struct PassageInputView: View {
         progressMessage = "単語を抽出中…"
         let body = bodyText
         extractionTask = Task {
-            var extracted = await pipeline.run(body)
-            // Apple Intelligence 対応端末では、文章の内容を問う問題も一緒に作って保存する
-            let generator = FoundationModelsComprehensionGenerator()
-            if !Task.isCancelled && generator.isAvailable && !extracted.items.isEmpty {
-                progressMessage = "文章の質問を作成中…"
-                extracted.comprehension = await ComprehensionBuilder(passage: body).buildAll(using: generator)
+            // 抽出の待ち時間に広告を出す（広告を閉じても抽出中なら進捗の表示が残る）
+            let extracted = await ExtractionWithAd.run(ad: services.extractionAd) {
+                var extracted = await pipeline.run(body)
+                // Apple Intelligence 対応端末では、文章の内容を問う問題も一緒に作って保存する
+                let generator = FoundationModelsComprehensionGenerator()
+                if !Task.isCancelled && generator.isAvailable && !extracted.items.isEmpty {
+                    progressMessage = "文章の質問を作成中…"
+                    extracted.comprehension = await ComprehensionBuilder(passage: body).buildAll(using: generator)
+                }
+                return extracted
             }
             isExtracting = false
             guard !Task.isCancelled else { return }

@@ -7,6 +7,7 @@ struct LibraryView: View {
     @Environment(AppServices.self) private var services
     @State private var isAddingPassage = false
     @State private var isBrowsingSources = false
+    @State private var isShowingStore = false
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,9 @@ struct LibraryView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
+                    Button("広告なしプラン", systemImage: "crown") { isShowingStore = true }
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Button("英文を探す", systemImage: "globe") { isBrowsingSources = true }
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -49,7 +53,10 @@ struct LibraryView: View {
                 PassageInputView()
             }
             .sheet(isPresented: $isBrowsingSources) {
-                NavigationStack { EnglishSourcesView() }
+                NavigationStack { EnglishSourcesView { isBrowsingSources = false } }
+            }
+            .sheet(isPresented: $isShowingStore) {
+                AdFreeStoreView(purchases: services.purchases) { isShowingStore = false }
             }
             .task(id: services.status.isReady) {
                 if services.status.isReady { services.migrateMeanings(of: passages) }

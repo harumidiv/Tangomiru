@@ -16,8 +16,23 @@ final class AppServices {
     }
 
     private(set) var status: Status = .loading
+    /// 広告なしプランの購入状態
+    let purchases = PurchaseManager()
+    /// 英文の抽出中に出す全画面広告（アプリ全体で1つを使い回す）
+    let extractionAd: any InterstitialAdPresenting
+    /// クイズを解き終わったときに出す全画面広告（静止画のみ）
+    let quizResultAd: any InterstitialAdPresenting
     private var dictionary: EJDictionary?
     private var basicWords: Set<String> = []
+
+    init() {
+        // 広告なしプランの間はどちらの広告も読み込まない・出さない
+        let purchases = purchases
+        extractionAd = AdFreeGatedPresenter(base: GoogleInterstitialAdPresenter()) { purchases.isAdFree }
+        quizResultAd = AdFreeGatedPresenter(
+            base: GoogleInterstitialAdPresenter(adUnitID: AdConfig.quizResultInterstitialUnitID)
+        ) { purchases.isAdFree }
+    }
 
     func load() async {
         guard dictionary == nil else { return }

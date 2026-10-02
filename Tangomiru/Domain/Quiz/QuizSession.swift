@@ -42,10 +42,20 @@ nonisolated struct QuizSession: Sendable {
     /// 間違えた（時間切れ・SKIP を含む）語（解答順）
     private(set) var wrongCards: [QuizCard] = []
 
-    init(cards: [QuizCard], length: QuizLength, fallbackMeanings: [String], rng: SeededRandom = SeededRandom()) {
+    /// passageMeanings は誤答の候補にする英文全体の訳（出題範囲で cards を絞り込んだときに渡す。省略時は cards の訳）
+    init(
+        cards: [QuizCard],
+        length: QuizLength,
+        passageMeanings: [String]? = nil,
+        fallbackMeanings: [String],
+        rng: SeededRandom = SeededRandom()
+    ) {
         var rng = rng
         let selected = QuizPlanner.select(from: cards, length: length, using: &rng)
-        self.init(queue: selected, passageMeanings: cards.map(\.meaning), fallbackMeanings: fallbackMeanings, isReview: false, rng: rng)
+        self.init(
+            queue: selected, passageMeanings: passageMeanings ?? cards.map(\.meaning),
+            fallbackMeanings: fallbackMeanings, isReview: false, rng: rng
+        )
     }
 
     /// 間違えた語だけを出題する復習の回。誤答候補には英文全体の訳を使う
@@ -69,10 +79,11 @@ nonisolated struct QuizSession: Sendable {
     var totalCount: Int { queue.count }
     var isFinished: Bool { current == nil }
 
+    /// elapsed は問題が表示されてから解答するまでの時間（スコアの上がり方・下がり方に使う）
     @discardableResult
-    mutating func answer(_ choice: String) -> AnswerFeedback {
+    mutating func answer(_ choice: String, elapsed: Duration? = nil) -> AnswerFeedback {
         guard let current else { return AnswerFeedback(isCorrect: false, correctAnswer: "") }
-        return record(isCorrect: choice == current.card.meaning)
+        return record(isCorrect: choice == current.card.meaning, elapsed: elapsed)
     }
 
     /// 「わからない」・時間切れとして不正解と同じ扱いにする
@@ -82,11 +93,11 @@ nonisolated struct QuizSession: Sendable {
         return record(isCorrect: false)
     }
 
-    private mutating func record(isCorrect: Bool) -> AnswerFeedback {
+    private mutating func record(isCorrect: Bool, elapsed: Duration? = nil) -> AnswerFeedback {
         if let lastFeedback { return lastFeedback }
         let card = queue[position]
         if !isReview {
-            let after = ScoreRule.apply(score: card.score, correct: isCorrect)
+            let after = ScoreRule.apply(score: card.score, correct: isCorrect, elapsed: elapsed)
             changes.append(ScoreChange(cardID: card.id, term: card.term, before: card.score, after: after))
         }
         if isCorrect {

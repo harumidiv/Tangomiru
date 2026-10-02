@@ -7,6 +7,7 @@ struct PassageDetailView: View {
     let passage: Passage
     @State private var isConfirmingDelete = false
     @AppStorage("quizLength") private var quizLengthRaw = QuizLength.ten.rawValue
+    @AppStorage("quizScope") private var quizScopeRaw = QuizScope.auto.rawValue
     @State private var isQuizPresented = false
     @State private var isStudyPresented = false
     private let isSentenceStudyAvailable = FoundationModelsSentenceAnalyzer().isAvailable
@@ -16,6 +17,12 @@ struct PassageDetailView: View {
             get: { QuizLength(rawValue: quizLengthRaw) ?? .ten },
             set: { quizLengthRaw = $0.rawValue }
         )
+    }
+
+    /// 選んでいた範囲の語が0問ならおまかせに戻す
+    private func effectiveScope(_ stats: MasteryStats) -> QuizScope {
+        let scope = QuizScope(rawValue: quizScopeRaw) ?? .auto
+        return scope.count(in: stats) > 0 ? scope : .auto
     }
 
     /// 画面を閉じてから削除する（閉じるアニメーション中に削除済みのデータを描画しないため）
@@ -51,6 +58,11 @@ struct PassageDetailView: View {
                 .padding(.vertical, 4)
             }
             Section("クイズ") {
+                ScopePicker(stats: stats, selection: Binding(
+                    get: { effectiveScope(stats) },
+                    set: { quizScopeRaw = $0.rawValue }
+                ))
+                .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
                 Picker("出題数", selection: quizLength) {
                     ForEach(QuizLength.allCases) { length in
                         Text(length.label).tag(length)
@@ -58,7 +70,7 @@ struct PassageDetailView: View {
                 }
                 .pickerStyle(.segmented)
                 Button("クイズを始める", systemImage: "play.fill") { isQuizPresented = true }
-                    .disabled(stats.total == 0)
+                    .disabled(effectiveScope(stats).count(in: stats) == 0)
                 if stats.total == 0 {
                     Text("出題ONの語がありません").font(.footnote).foregroundStyle(.secondary)
                 }
@@ -102,7 +114,54 @@ struct PassageDetailView: View {
             SentenceStudyView(passage: passage)
         }
         .fullScreenCover(isPresented: $isQuizPresented) {
-            QuizView(passage: passage, length: quizLength.wrappedValue)
+            QuizView(passage: passage, length: quizLength.wrappedValue, scope: effectiveScope(passage.stats))
+        }
+    }
+}
+
+/// 出題範囲を横スクロールのカードで選ぶ（各カードに問題数。0問は選べない）
+private struct ScopePicker: View {
+    let stats: MasteryStats
+    @Binding var selection: QuizScope
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 10) {
+                ForEach(QuizScope.allCases) { scope in
+                    let count = scope.count(in: stats)
+                    Button {
+                        selection = scope
+                    } label: {
+                        VStack(spacing: 6) {
+                            icon(for: scope)
+                            Text(scope.label).font(.subheadline.bold())
+                            Text("\(count)問").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .frame(width: 84, height: 88)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemGroupedBackground)))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(selection == scope ? Color.orange : Color(.separator), lineWidth: selection == scope ? 3 : 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(count == 0)
+                    .opacity(count == 0 ? 0.4 : 1)
+                    .accessibilityLabel("\(scope.label) \(count)問")
+                    .accessibilityAddTraits(selection == scope ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    @ViewBuilder
+    private func icon(for scope: QuizScope) -> some View {
+        if let state = scope.state {
+            Circle().fill(state.color).frame(width: 18, height: 18)
+        } else {
+            Image(systemName: "sparkles").foregroundStyle(.orange).frame(height: 18)
         }
     }
 }

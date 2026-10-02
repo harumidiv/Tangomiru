@@ -17,7 +17,15 @@ struct TangomiruApp: App {
             LibraryView()
                 .environment(services)
                 .task { await services.load() }
+                .task {
+                    // 広告なしプランなら、広告のための同意・トラッキング許可も求めない
+                    await services.purchases.start()
+                    guard !services.purchases.isAdFree else { return }
+                    await AdConsent.prepare()
+                    services.extractionAd.preload()
+                    services.quizResultAd.preload()
+                }
         }
-        .modelContainer(for: Passage.self)
+        .modelContainer(for: [Passage.self, CustomSource.self])
     }
 }
