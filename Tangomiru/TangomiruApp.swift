@@ -18,6 +18,6 @@ struct TangomiruApp: App {
                 .environment(services)
                 .task { await services.load() }
         }
-        .modelContainer(for: Passage.self)
+        .modelContainer(for: [Passage.self, CustomSource.self])
     }
 }
