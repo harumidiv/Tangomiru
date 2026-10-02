@@ -79,10 +79,11 @@ nonisolated struct QuizSession: Sendable {
     var totalCount: Int { queue.count }
     var isFinished: Bool { current == nil }
 
+    /// elapsed は問題が表示されてから解答するまでの時間（スコアの上がり方・下がり方に使う）
     @discardableResult
-    mutating func answer(_ choice: String) -> AnswerFeedback {
+    mutating func answer(_ choice: String, elapsed: Duration? = nil) -> AnswerFeedback {
         guard let current else { return AnswerFeedback(isCorrect: false, correctAnswer: "") }
-        return record(isCorrect: choice == current.card.meaning)
+        return record(isCorrect: choice == current.card.meaning, elapsed: elapsed)
     }
 
     /// 「わからない」・時間切れとして不正解と同じ扱いにする
@@ -92,11 +93,11 @@ nonisolated struct QuizSession: Sendable {
         return record(isCorrect: false)
     }
 
-    private mutating func record(isCorrect: Bool) -> AnswerFeedback {
+    private mutating func record(isCorrect: Bool, elapsed: Duration? = nil) -> AnswerFeedback {
         if let lastFeedback { return lastFeedback }
         let card = queue[position]
         if !isReview {
-            let after = ScoreRule.apply(score: card.score, correct: isCorrect)
+            let after = ScoreRule.apply(score: card.score, correct: isCorrect, elapsed: elapsed)
             changes.append(ScoreChange(cardID: card.id, term: card.term, before: card.score, after: after))
         }
         if isCorrect {

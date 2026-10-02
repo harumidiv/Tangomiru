@@ -13,6 +13,8 @@ struct QuizView: View {
     @State private var isCommitted = false
     /// 制限時間の残り割合（1 → 0）
     @State private var remaining = 1.0
+    /// 今の問題が表示された時刻（解答までの時間を測る）
+    @State private var questionStart = ContinuousClock.now
     /// 復習の回を始めるたびに増やし、タイマーを確実にリセットする
     @State private var round = 0
     @State private var speaker = WordSpeaker()
@@ -151,7 +153,8 @@ struct QuizView: View {
     private func answer(_ choice: String) {
         guard feedback == nil else { return }
         selectedChoice = choice
-        withAnimation { feedback = session?.answer(choice) }
+        let elapsed = ContinuousClock.now - questionStart
+        withAnimation { feedback = session?.answer(choice, elapsed: elapsed) }
     }
 
     private func skip() {
@@ -165,6 +168,7 @@ struct QuizView: View {
         // 問題が表示されたら英単語を読み上げる
         if let term = session?.current?.card.term { speaker.speak(term) }
         let start = ContinuousClock.now
+        questionStart = start
         remaining = 1
         while !Task.isCancelled && feedback == nil {
             remaining = QuizCountdown.remainingFraction(elapsed: ContinuousClock.now - start)
