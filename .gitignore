@@ -3,3 +3,8 @@ DerivedData/
 xcuserdata/
 *.xcresult
 .DS_Store
+
+# PLaMo 3 Translate（scripts/setup-plamo.sh で用意する）
+*.gguf
+Packages/LlamaFramework/llama.xcframework/
+Packages/LlamaFramework/.build/

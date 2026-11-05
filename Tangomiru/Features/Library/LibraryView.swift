@@ -8,6 +8,7 @@ struct LibraryView: View {
     @State private var isAddingPassage = false
     @State private var isBrowsingSources = false
     @State private var isShowingStore = false
+    @State private var isShowingAbout = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +35,9 @@ struct LibraryView: View {
                 PassageDetailView(passage: passage)
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("このアプリについて", systemImage: "info.circle") { isShowingAbout = true }
+                }
                 if !passages.isEmpty {
                     ToolbarItem(placement: .topBarLeading) {
                         EditButton()
@@ -54,6 +58,9 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $isBrowsingSources) {
                 NavigationStack { EnglishSourcesView { isBrowsingSources = false } }
+            }
+            .sheet(isPresented: $isShowingAbout) {
+                NavigationStack { AboutView { isShowingAbout = false } }
             }
             .sheet(isPresented: $isShowingStore) {
                 AdFreeStoreView(purchases: services.purchases) { isShowingStore = false }

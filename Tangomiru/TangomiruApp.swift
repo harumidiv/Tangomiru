@@ -10,6 +10,7 @@ import SwiftUI
 
 @main
 struct TangomiruApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     #if DEBUG
     @State private var services = AppServices(adsEnabled: !ScreenshotMode.isActive)
     #else

@@ -1,9 +1,11 @@
 import Foundation
 import Observation
+import os
 
 /// 1文ずつ学ぶ画面の進行。英文を表示し、「和訳と解説を見る」で和訳と解説を見せる。
 /// 保存済みの解説はそのまま使い、無い文だけ作って onAnalyzed で保存に回す。
-/// 表示中の文と次の文の解説を先に作っておき、待ち時間を減らす
+/// 表示中の文と次の文の解説を先に作っておき、待ち時間を減らす。
+/// 解説を作れない端末では和訳だけを見せ、和訳だけの結果は保存しない（解説を作れるようになったら作り直すため）
 @Observable
 final class SentenceStudyModel {
     enum LoadState: Equatable {
@@ -35,6 +37,9 @@ final class SentenceStudyModel {
             if let analysis = saved[sentence] { states[index] = .loaded(analysis) }
         }
     }
+
+    /// 解説まで作れるか（false なら和訳だけを作る）
+    var canExplain: Bool { analyzer.canExplain }
 
     var isFinished: Bool { index >= sentences.count }
     var currentSentence: String? { sentences.indices.contains(index) ? sentences[index] : nil }
@@ -84,11 +89,18 @@ final class SentenceStudyModel {
         states[index] = .loading
         let sentence = sentences[index]
         let analyzer = analyzer
+        let shouldSave = analyzer.canExplain
         tasks[index] = Task { [weak self] in
-            let analysis = try? SentenceAnalysisValidator.validated(await analyzer.analyze(sentence))
+            var analysis: SentenceAnalysis?
+            do {
+                analysis = SentenceAnalysisValidator.validated(try await analyzer.analyze(sentence))
+                if analysis == nil { SentenceStudyLog.logger.error("和訳が空でした") }
+            } catch {
+                SentenceStudyLog.logger.error("和訳と解説を作れませんでした: \(String(reflecting: error), privacy: .public)")
+            }
             guard !Task.isCancelled, let self else { return }
             states[index] = analysis.map(LoadState.loaded) ?? .failed
-            if let analysis { onAnalyzed?(sentence, analysis) }
+            if let analysis, shouldSave, !analysis.isExplanationFailed { onAnalyzed?(sentence, analysis) }
         }
     }
 }

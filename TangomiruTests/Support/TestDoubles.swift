@@ -80,10 +80,29 @@ nonisolated final class CallRecorder: Sendable {
 
 nonisolated struct FakeSentenceAnalyzer: SentenceAnalyzer {
     var isAvailable = true
+    var canExplain = true
     let handler: @Sendable (String) throws -> SentenceAnalysis
 
     func analyze(_ sentence: String) async throws -> SentenceAnalysis {
         try handler(sentence)
+    }
+}
+
+nonisolated struct FakeSentenceTranslator: SentenceTranslator {
+    var isAvailable = true
+    let handler: @Sendable (String) throws -> String
+
+    func translate(_ sentence: String) async throws -> String {
+        try handler(sentence)
+    }
+}
+
+nonisolated struct FakeSentenceExplainer: SentenceExplainer {
+    var isAvailable = true
+    let handler: @Sendable (String, String) throws -> String
+
+    func explain(_ sentence: String, translation: String) async throws -> String {
+        try handler(sentence, translation)
     }
 }
 

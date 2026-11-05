@@ -10,6 +10,7 @@
 		05E7A450306F747000640B04 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05E7A44F306F747000640B04 /* StoreKit.framework */; };
 		2CC1CAD699814B47EC270CB6 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 1D433D68964BB5FC44C34B4D /* GoogleMobileAds */; };
 		6364AB16D17DA763D7AA18F7 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6F16DA7EE4A151164AC96AA /* Foundation.framework */; };
+		A1B2C3D4E5F60718293A4B01 /* LlamaFramework in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60718293A4B02 /* LlamaFramework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,22 +42,16 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		05E79FC4306C72C000640B04 /* Tangomiru */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = Tangomiru;
 			sourceTree = "<group>";
 		};
 		05E79FD2306C72C100640B04 /* TangomiruTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TangomiruTests;
 			sourceTree = "<group>";
 		};
 		62B7E64CB5744C8E933B1E6D /* TangomiruUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TangomiruUITests;
 			sourceTree = "<group>";
 		};
@@ -68,6 +63,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2CC1CAD699814B47EC270CB6 /* GoogleMobileAds in Frameworks */,
+				A1B2C3D4E5F60718293A4B01 /* LlamaFramework in Frameworks */,
 				05E7A450306F747000640B04 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -150,6 +146,7 @@
 			name = Tangomiru;
 			packageProductDependencies = (
 				1D433D68964BB5FC44C34B4D /* GoogleMobileAds */,
+				A1B2C3D4E5F60718293A4B02 /* LlamaFramework */,
 			);
 			productName = Tangomiru;
 			productReference = 05E79FC2306C72C000640B04 /* Tangomiru.app */;
@@ -227,6 +224,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				7F4A682D74759496BF2A4C65 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				A1B2C3D4E5F60718293A4B03 /* XCLocalSwiftPackageReference "Packages/LlamaFramework" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 05E79FC3306C72C000640B04 /* Products */;
@@ -626,6 +624,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		A1B2C3D4E5F60718293A4B03 /* XCLocalSwiftPackageReference "Packages/LlamaFramework" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/LlamaFramework;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		7F4A682D74759496BF2A4C65 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -642,6 +647,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7F4A682D74759496BF2A4C65 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		A1B2C3D4E5F60718293A4B02 /* LlamaFramework */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LlamaFramework;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

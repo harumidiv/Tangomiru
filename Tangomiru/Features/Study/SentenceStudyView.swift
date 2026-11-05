@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// 1文ずつ英文を読み、和訳と解説で学ぶ（Apple Intelligence 対応端末のみ）
+/// 1文ずつ英文を読み、和訳と解説で学ぶ（Apple Intelligence 非対応端末では和訳だけ）
 struct SentenceStudyView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: SentenceStudyModel
@@ -11,7 +11,7 @@ struct SentenceStudyView: View {
         self.init(model: SentenceStudyModel(
             sentences: SentenceSplitter.sentences(in: passage.body),
             saved: passage.sentenceAnalyses,
-            analyzer: FoundationModelsSentenceAnalyzer(),
+            analyzer: TranslateThenExplainAnalyzer.standard,
             onAnalyzed: { sentence, analysis in passage.saveSentenceAnalysis(analysis, for: sentence) }
         ))
     }
@@ -95,7 +95,15 @@ struct SentenceStudyView: View {
                 StudySection(title: "和訳") {
                     Text(analysis.translation).font(.body)
                 }
-                if !analysis.explanation.isEmpty {
+                if analysis.isExplanationFailed {
+                    StudySection(title: "解説") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("解説を作れませんでした").font(.body)
+                            Button("もう一度試す", systemImage: "arrow.clockwise") { model.retry() }
+                                .buttonStyle(.bordered)
+                        }
+                    }
+                } else if !analysis.explanation.isEmpty {
                     StudySection(title: "解説") {
                         Text(analysis.explanation).font(.body)
                     }
@@ -104,14 +112,14 @@ struct SentenceStudyView: View {
             .transition(.opacity)
         case .failed:
             VStack(spacing: 12) {
-                Text("解説を作れませんでした").font(.headline)
+                Text(model.canExplain ? "解説を作れませんでした" : "和訳を作れませんでした").font(.headline)
                 Button("もう一度試す", systemImage: "arrow.clockwise") { model.retry() }
                     .buttonStyle(.bordered)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 24)
         case .loading, nil:
-            ProgressView("解説を作成中…")
+            ProgressView(model.canExplain ? "解説を作成中…" : "和訳を作成中…")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
         }
@@ -123,7 +131,7 @@ struct SentenceStudyView: View {
             let isLast = model.index == model.sentences.count - 1
             primaryButton(isLast ? "読み終える" : "次の文へ") { model.next() }
         } else {
-            primaryButton("和訳と解説を見る") { withAnimation { model.reveal() } }
+            primaryButton(model.canExplain ? "和訳と解説を見る" : "和訳を見る") { withAnimation { model.reveal() } }
         }
     }
 
@@ -136,6 +144,17 @@ struct SentenceStudyView: View {
         .buttonStyle(.borderedProminent)
         .buttonBorderShape(.capsule)
         .tint(.orange)
+    }
+}
+
+extension TranslateThenExplainAnalyzer {
+    /// 和訳は PLaMo、解説は Foundation Models で作る
+    static var standard: TranslateThenExplainAnalyzer {
+        TranslateThenExplainAnalyzer(
+            translator: PlamoTranslator.shared,
+            explainer: FoundationModelsSentenceAnalyzer(),
+            fallback: FoundationModelsSentenceAnalyzer()
+        )
     }
 }
 
