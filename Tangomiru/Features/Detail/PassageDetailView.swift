@@ -4,13 +4,14 @@ import SwiftUI
 struct PassageDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppServices.self) private var services
     let passage: Passage
     @State private var isConfirmingDelete = false
     @AppStorage("quizLength") private var quizLengthRaw = QuizLength.ten.rawValue
     @AppStorage("quizScope") private var quizScopeRaw = QuizScope.auto.rawValue
     @State private var isQuizPresented = false
     @State private var isStudyPresented = false
-    private let isSentenceStudyAvailable = FoundationModelsSentenceAnalyzer().isAvailable
+    private let studyAnalyzer = TranslateThenExplainAnalyzer.standard
 
     private var quizLength: Binding<QuizLength> {
         Binding(
@@ -35,6 +36,23 @@ struct PassageDetailView: View {
             modelContext.delete(passage)
             try? modelContext.save()
         }
+    }
+
+    /// 和訳モデルのダウンロード状態で表示が変わるので、store の状態から判断する
+    private var sentenceStudyFooter: String {
+        let isModelReady = services.plamoModel.isReady
+        if studyAnalyzer.canExplain {
+            return isModelReady
+                ? "1文ずつ読んで、和訳と解説を確認します"
+                : "1文ずつ読んで、和訳と解説を確認します。和訳モデル（PLaMo）をダウンロードすると、和訳を翻訳専用のモデルで作ります"
+        }
+        return isModelReady
+            ? "1文ずつ読んで、和訳を確認します（解説は Apple Intelligence 対応端末で表示されます）"
+            : "和訳モデル（PLaMo）をダウンロードすると、1文ずつ和訳を確認できます（解説は Apple Intelligence 対応端末で表示されます）"
+    }
+
+    private var isSentenceStudyAvailable: Bool {
+        services.plamoModel.isReady || studyAnalyzer.canExplain
     }
 
     var body: some View {
@@ -78,10 +96,9 @@ struct PassageDetailView: View {
             Section {
                 Button("1文ずつ学ぶ", systemImage: "text.book.closed") { isStudyPresented = true }
                     .disabled(!isSentenceStudyAvailable)
+                PlamoModelRow(store: services.plamoModel)
             } footer: {
-                Text(isSentenceStudyAvailable
-                     ? "1文ずつ読んで、和訳と解説を確認します"
-                     : "Apple Intelligence 対応端末で使えます")
+                Text(sentenceStudyFooter)
             }
             Section {
                 NavigationLink {

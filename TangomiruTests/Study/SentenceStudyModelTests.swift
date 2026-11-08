@@ -111,4 +111,32 @@ struct SentenceStudyModelTests {
         await settle(model)
         #expect(reported.calls == [["Second one.", "Second one.の訳"]])
     }
+
+    @Test func doesNotSaveTranslationOnlyResults() async {
+        let reported = CallRecorder()
+        let model = SentenceStudyModel(
+            sentences: Self.sentences,
+            analyzer: FakeSentenceAnalyzer(canExplain: false) { SentenceAnalysis(translation: "\($0)の訳", explanation: "") },
+            onAnalyzed: { sentence, _ in reported.record([sentence]) }
+        )
+        model.start()
+        await settle(model)
+        #expect(!model.canExplain)
+        #expect(model.currentAnalysis == SentenceAnalysis(translation: "First one.の訳", explanation: ""))
+        #expect(reported.calls.isEmpty)
+    }
+
+    @Test func showsButDoesNotSaveTranslationWhenExplanationFailed() async {
+        let reported = CallRecorder()
+        let failed = SentenceAnalysis(translation: "訳", explanation: "", isExplanationFailed: true)
+        let model = SentenceStudyModel(
+            sentences: Self.sentences,
+            analyzer: FakeSentenceAnalyzer { _ in failed },
+            onAnalyzed: { sentence, _ in reported.record([sentence]) }
+        )
+        model.start()
+        await settle(model)
+        #expect(model.currentAnalysis == failed)
+        #expect(reported.calls.isEmpty)
+    }
 }
