@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Tangomiru
 
@@ -13,5 +14,15 @@ struct SentenceSplitterTests {
 
     @Test func emptyTextGivesNoSentences() {
         #expect(SentenceSplitter.sentences(in: "   ").isEmpty)
+    }
+
+    @Test func slicesPointToSentencesInBody() {
+        let body = "  I like 🐈 cats.\n\n...\n\nDogs are loyal!  "
+        let slices = SentenceSplitter.slices(in: body)
+        #expect(slices.map(\.text) == ["I like 🐈 cats.", "Dogs are loyal!"])
+        for slice in slices {
+            let range = NSRange(location: slice.span.location, length: slice.span.length)
+            #expect((body as NSString).substring(with: range) == slice.text)
+        }
     }
 }

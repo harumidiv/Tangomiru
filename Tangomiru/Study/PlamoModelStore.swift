@@ -26,9 +26,9 @@ final class PlamoModelStore {
         let size: Int64
 
         static let plamo3Translate = Remote(
-            url: URL(string: "https://huggingface.co/pfnet/plamo-3-translate-0.8b-GGUF/resolve/03891e907db8a43c97d3a7c75add125cc6d1f96a/plamo-3-translate-0.8b-Q4_K_M.gguf")!,
-            sha256: "3dbb09295bfd3350231ba0dba92bc72cb14111ef1b034e37dad39d581bd86b9c",
-            size: 573_116_288
+            url: URL(string: "https://huggingface.co/pfnet/plamo-3-translate-0.8b-GGUF/resolve/1cf96ae02133958a20074bfdfab76517bb737d00/plamo-3-translate-0.8b-Q4_K_M.gguf")!,
+            sha256: "70891ec70dc7ab4205745a38307867c2881b99239f20327927633abfe4bc9ec6",
+            size: 573_126_848
         )
     }
 

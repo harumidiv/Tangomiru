@@ -48,4 +48,25 @@ struct ReadingSegmenterTests {
         )
         #expect(segments == [ReadingSegment(text: "😀 ", itemID: nil), ReadingSegment(text: "give up", itemID: a)])
     }
+
+    @Test func keepsHighlightsInsideSpanRelativeToIt() {
+        let highlights = [
+            ReadingHighlight(span: TextSpan(location: 2, length: 4), itemID: a),
+            ReadingHighlight(span: TextSpan(location: 15, length: 4), itemID: b),
+            ReadingHighlight(span: TextSpan(location: 10, length: 7), itemID: a),
+        ]
+        let within = ReadingSegmenter.highlights(highlights, within: TextSpan(location: 12, length: 8))
+        #expect(within == [ReadingHighlight(span: TextSpan(location: 3, length: 4), itemID: b)])
+    }
+
+    @Test func splitsTextIntoWordsAndGaps() {
+        let text = "I don't own 3 cats, okay?"
+        let pieces = ReadingSegmenter.wordPieces(text)
+        #expect(pieces.filter(\.isWord).map(\.text) == ["I", "don't", "own", "cats", "okay"])
+        #expect(pieces.map(\.text).joined() == text)
+    }
+
+    @Test func textWithoutLettersHasNoWords() {
+        #expect(ReadingSegmenter.wordPieces(" 123, ") == [WordPiece(text: " 123, ", isWord: false)])
+    }
 }

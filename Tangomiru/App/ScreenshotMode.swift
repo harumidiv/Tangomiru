@@ -42,7 +42,7 @@ struct ScreenshotRootView: View {
         case .reading:
             NavigationStack { ReadingView(passage: samples.main) }
         case .study:
-            SentenceStudyView(model: samples.studyModel())
+            SentenceStudyView(model: samples.studyModel(), wordsFrom: samples.main)
         case .comprehension:
             ComprehensionQuizView(model: samples.comprehensionModel())
         }
