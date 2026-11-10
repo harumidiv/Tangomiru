@@ -17,6 +17,11 @@ struct TangomiruApp: App {
     @State private var services = AppServices()
     #endif
 
+    init() {
+        // 最初の読み上げまでに音の設定を終えておく
+        AppAudioSession.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             root
