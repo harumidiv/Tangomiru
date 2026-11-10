@@ -48,4 +48,14 @@ struct ReadingSegmenterTests {
         )
         #expect(segments == [ReadingSegment(text: "😀 ", itemID: nil), ReadingSegment(text: "give up", itemID: a)])
     }
+
+    @Test func keepsHighlightsInsideSpanRelativeToIt() {
+        let highlights = [
+            ReadingHighlight(span: TextSpan(location: 2, length: 4), itemID: a),
+            ReadingHighlight(span: TextSpan(location: 15, length: 4), itemID: b),
+            ReadingHighlight(span: TextSpan(location: 10, length: 7), itemID: a),
+        ]
+        let within = ReadingSegmenter.highlights(highlights, within: TextSpan(location: 12, length: 8))
+        #expect(within == [ReadingHighlight(span: TextSpan(location: 3, length: 4), itemID: b)])
+    }
 }

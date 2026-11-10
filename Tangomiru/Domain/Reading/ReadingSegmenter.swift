@@ -12,6 +12,13 @@ nonisolated struct ReadingSegment: Equatable, Sendable {
 }
 
 nonisolated enum ReadingSegmenter {
+    /// 本文全体のハイライトのうち span に収まるものを、span の先頭を 0 とする位置に直して返す（1文だけを表示するとき用）
+    static func highlights(_ highlights: [ReadingHighlight], within span: TextSpan) -> [ReadingHighlight] {
+        highlights
+            .filter { $0.span.location >= span.location && $0.span.end <= span.end }
+            .map { ReadingHighlight(span: TextSpan(location: $0.span.location - span.location, length: $0.span.length), itemID: $0.itemID) }
+    }
+
     /// 本文をハイライト区間と通常区間に分ける。重なる区間は長い方（熟語）を優先する
     static func segments(body: String, highlights: [ReadingHighlight]) -> [ReadingSegment] {
         let ns = body as NSString

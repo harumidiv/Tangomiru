@@ -10,17 +10,10 @@ struct ReadingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 legend
-                Text(attributedBody)
+                Text(VocabHighlight.attributed(passage.body, highlights: passage.readingHighlights, itemsByID: itemsByID))
                     .font(.body)
                     .lineSpacing(6)
-                    .tint(.primary)
-                    .textSelection(.disabled)
-                    .environment(\.openURL, OpenURLAction { url in
-                        if let id = ReadingLink.itemID(from: url) {
-                            selectedItem = passage.items.first { $0.uuid == id }
-                        }
-                        return .handled
-                    })
+                    .onVocabTap(itemsByID: itemsByID) { selectedItem = $0 }
                 comprehensionQuizEntry
             }
             .padding()
@@ -69,54 +62,5 @@ struct ReadingView: View {
         }
     }
 
-    private var attributedBody: AttributedString {
-        let itemsByID = Dictionary(passage.items.map { ($0.uuid, $0) }, uniquingKeysWith: { first, _ in first })
-        let highlights = passage.enabledItems
-            .filter { $0.state != .mastered }
-            .flatMap { item in item.occurrences.map { ReadingHighlight(span: $0, itemID: item.uuid) } }
-        var result = AttributedString()
-        for segment in ReadingSegmenter.segments(body: passage.body, highlights: highlights) {
-            var part = AttributedString(segment.text)
-            if let id = segment.itemID, let item = itemsByID[id] {
-                part.backgroundColor = item.state.highlightBackground
-                part.link = ReadingLink.url(for: id)
-                if item.state == .veryWeak {
-                    part.inlinePresentationIntent = .stronglyEmphasized
-                }
-            }
-            result += part
-        }
-        return result
-    }
-}
-
-private struct ItemDetailSheet: View {
-    let item: VocabItem
-    @State private var speaker = WordSpeaker()
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(item.term).font(.title2.bold())
-                MasteryBadge(state: item.state)
-                Spacer()
-                Button {
-                    speaker.speak(item.term)
-                } label: {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.title3)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
-                .accessibilityLabel("\(item.term) を読み上げる")
-            }
-            Text(item.meaning).font(.body)
-            Text(item.contextSentence).font(.callout).foregroundStyle(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .onDisappear { speaker.stop() }
-    }
+    private var itemsByID: [UUID: VocabItem] { passage.itemsByID }
 }

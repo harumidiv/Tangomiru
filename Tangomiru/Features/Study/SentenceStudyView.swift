@@ -5,20 +5,35 @@ import UIKit
 struct SentenceStudyView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: SentenceStudyModel
+    @State private var selectedItem: VocabItem?
+    /// 文ごとの単語ハイライト（位置はその文の先頭が 0）。読解モードと同じく、タップで意味を出す
+    private let highlights: [[ReadingHighlight]]
+    private let itemsByID: [UUID: VocabItem]
 
     /// 保存済みの解説はそのまま使い、初めて開いた文だけ作って保存する
     init(passage: Passage) {
-        self.init(model: SentenceStudyModel(
-            sentences: SentenceSplitter.sentences(in: passage.body),
-            saved: passage.sentenceAnalyses,
-            analyzer: TranslateThenExplainAnalyzer.standard,
-            onAnalyzed: { sentence, analysis in passage.saveSentenceAnalysis(analysis, for: sentence) }
-        ))
+        self.init(
+            model: SentenceStudyModel(
+                sentences: SentenceSplitter.sentences(in: passage.body),
+                saved: passage.sentenceAnalyses,
+                analyzer: TranslateThenExplainAnalyzer.standard,
+                onAnalyzed: { sentence, analysis in passage.saveSentenceAnalysis(analysis, for: sentence) }
+            ),
+            wordsFrom: passage
+        )
     }
 
-    /// プレビューなどで解説の作り方を差し替えるため
-    init(model: SentenceStudyModel) {
+    /// プレビューなどで解説の作り方を差し替えるため。wordsFrom を渡すと、その単語をハイライトしてタップで意味を出す
+    init(model: SentenceStudyModel, wordsFrom passage: Passage? = nil) {
         _model = State(initialValue: model)
+        if let passage {
+            let highlights = passage.readingHighlights
+            self.highlights = SentenceSplitter.slices(in: passage.body).map { ReadingSegmenter.highlights(highlights, within: $0.span) }
+            itemsByID = passage.itemsByID
+        } else {
+            highlights = []
+            itemsByID = [:]
+        }
     }
 
     var body: some View {
@@ -53,6 +68,10 @@ struct SentenceStudyView: View {
         .background(QuizPalette.background.ignoresSafeArea())
         .task { model.start() }
         .onDisappear { model.cancelAll() }
+        .sheet(item: $selectedItem) { item in
+            ItemDetailSheet(item: item)
+                .presentationDetents([.height(240)])
+        }
     }
 
     private var header: some View {
@@ -79,8 +98,10 @@ struct SentenceStudyView: View {
     }
 
     private var sentenceCard: some View {
-        Text(model.currentSentence ?? "")
+        let sentenceHighlights = highlights.indices.contains(model.index) ? highlights[model.index] : []
+        return Text(VocabHighlight.attributed(model.currentSentence ?? "", highlights: sentenceHighlights, itemsByID: itemsByID))
             .font(.title2.weight(.semibold))
+            .onVocabTap(itemsByID: itemsByID) { selectedItem = $0 }
             .frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
             .padding(24)
             .background(RoundedRectangle(cornerRadius: 20).fill(QuizPalette.surface))
