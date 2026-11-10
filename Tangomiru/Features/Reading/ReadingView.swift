@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ReadingView: View {
     let passage: Passage
-    @State private var selectedItem: VocabItem?
     @State private var isComprehensionQuizPresented = false
     private let isComprehensionQuizAvailable = FoundationModelsComprehensionGenerator().isAvailable
 
@@ -13,7 +12,7 @@ struct ReadingView: View {
                 Text(VocabHighlight.attributed(passage.body, highlights: passage.readingHighlights, itemsByID: itemsByID))
                     .font(.body)
                     .lineSpacing(6)
-                    .onVocabTap(itemsByID: itemsByID) { selectedItem = $0 }
+                    .vocabTapActions(itemsByID: itemsByID)
                 comprehensionQuizEntry
             }
             .padding()
@@ -22,10 +21,6 @@ struct ReadingView: View {
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $isComprehensionQuizPresented) {
             ComprehensionQuizView(passage: passage)
-        }
-        .sheet(item: $selectedItem) { item in
-            ItemDetailSheet(item: item)
-                .presentationDetents([.height(240)])
         }
     }
 

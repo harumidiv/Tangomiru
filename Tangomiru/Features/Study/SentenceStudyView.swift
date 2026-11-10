@@ -5,8 +5,7 @@ import UIKit
 struct SentenceStudyView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: SentenceStudyModel
-    @State private var selectedItem: VocabItem?
-    /// 文ごとの単語ハイライト（位置はその文の先頭が 0）。読解モードと同じく、タップで意味を出す
+    /// 文ごとの単語ハイライト（位置はその文の先頭が 0）。読解モードと同じく、タップで意味や翻訳を出す
     private let highlights: [[ReadingHighlight]]
     private let itemsByID: [UUID: VocabItem]
 
@@ -68,10 +67,6 @@ struct SentenceStudyView: View {
         .background(QuizPalette.background.ignoresSafeArea())
         .task { model.start() }
         .onDisappear { model.cancelAll() }
-        .sheet(item: $selectedItem) { item in
-            ItemDetailSheet(item: item)
-                .presentationDetents([.height(240)])
-        }
     }
 
     private var header: some View {
@@ -101,7 +96,7 @@ struct SentenceStudyView: View {
         let sentenceHighlights = highlights.indices.contains(model.index) ? highlights[model.index] : []
         return Text(VocabHighlight.attributed(model.currentSentence ?? "", highlights: sentenceHighlights, itemsByID: itemsByID))
             .font(.title2.weight(.semibold))
-            .onVocabTap(itemsByID: itemsByID) { selectedItem = $0 }
+            .vocabTapActions(itemsByID: itemsByID)
             .frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
             .padding(24)
             .background(RoundedRectangle(cornerRadius: 20).fill(QuizPalette.surface))

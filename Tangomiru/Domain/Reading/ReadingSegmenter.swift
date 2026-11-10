@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 
 nonisolated struct ReadingHighlight: Equatable, Sendable {
     let span: TextSpan
@@ -11,7 +12,28 @@ nonisolated struct ReadingSegment: Equatable, Sendable {
     let itemID: UUID?
 }
 
+/// 通常区間を単語とそれ以外（空白・記号・数字）に分けた一片
+nonisolated struct WordPiece: Equatable, Sendable {
+    let text: String
+    let isWord: Bool
+}
+
 nonisolated enum ReadingSegmenter {
+    /// text を単語（英字を含むもの）とその間に分ける。つなげると text に戻る
+    static func wordPieces(_ text: String) -> [WordPiece] {
+        let tokenizer = NLTokenizer(unit: .word)
+        tokenizer.string = text
+        var pieces: [WordPiece] = []
+        var cursor = text.startIndex
+        for range in tokenizer.tokens(for: text.startIndex..<text.endIndex) where text[range].contains(where: \.isLetter) {
+            if cursor < range.lowerBound { pieces.append(WordPiece(text: String(text[cursor..<range.lowerBound]), isWord: false)) }
+            pieces.append(WordPiece(text: String(text[range]), isWord: true))
+            cursor = range.upperBound
+        }
+        if cursor < text.endIndex { pieces.append(WordPiece(text: String(text[cursor...]), isWord: false)) }
+        return pieces
+    }
+
     /// 本文全体のハイライトのうち span に収まるものを、span の先頭を 0 とする位置に直して返す（1文だけを表示するとき用）
     static func highlights(_ highlights: [ReadingHighlight], within span: TextSpan) -> [ReadingHighlight] {
         highlights
