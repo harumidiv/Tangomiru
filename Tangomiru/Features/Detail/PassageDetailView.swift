@@ -44,7 +44,7 @@ struct PassageDetailView: View {
         if studyAnalyzer.canExplain {
             return isModelReady
                 ? "1文ずつ読んで、和訳と解説を確認します"
-                : "1文ずつ読んで、和訳と解説を確認します。和訳モデル（PLaMo）をダウンロードすると、和訳を翻訳専用のモデルで作ります"
+                : "1文ずつ読んで、和訳と解説を確認します。和訳モデル（PLaMo）をダウンロードすると、翻訳専用のモデルでより正確に和訳できます"
         }
         return isModelReady
             ? "1文ずつ読んで、和訳を確認します（解説は Apple Intelligence 対応端末で表示されます）"
