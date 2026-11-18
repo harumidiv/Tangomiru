@@ -1,6 +1,6 @@
 import AVFoundation
 
-/// 出題された英単語を読み上げる（音の設定は AppAudioSession に従う）
+/// 英単語や英文を読み上げる（音の設定は AppAudioSession に従う）
 final class WordSpeaker {
     private let synthesizer = AVSpeechSynthesizer()
 
