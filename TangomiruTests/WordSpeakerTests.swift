@@ -13,4 +13,14 @@ struct WordSpeakerTests {
         #expect(AppAudioSession.category == .playback)
         #expect(AppAudioSession.options.contains(.mixWithOthers))
     }
+
+    @MainActor
+    @Test func stopClearsPlaybackWhileAudioIsPreparing() {
+        let speaker = WordSpeaker()
+        #expect(!speaker.isPlaying)
+        speaker.speak("The train arrives at noon.")
+        #expect(speaker.isPlaying)
+        speaker.stop()
+        #expect(!speaker.isPlaying)
+    }
 }

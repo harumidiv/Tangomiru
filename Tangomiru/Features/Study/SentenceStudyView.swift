@@ -56,9 +56,10 @@ struct SentenceStudyView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         VStack(alignment: .leading, spacing: 6) {
                             sentenceCard
-                            Text("単語をタップすると、意味を確認できます")
+                            Text("※ 単語をタップすると、意味を確認できます")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
+                                .padding(.leading, 12)
                         }
                         if model.isRevealed { explanation }
                     }
@@ -100,15 +101,19 @@ struct SentenceStudyView: View {
                 .foregroundStyle(.secondary)
             if let sentence = model.currentSentence {
                 Button {
-                    speaker.speak(sentence)
+                    if speaker.isPlaying {
+                        speaker.stop()
+                    } else {
+                        speaker.speak(sentence)
+                    }
                 } label: {
-                    Image(systemName: "speaker.wave.2.fill")
+                    Image(systemName: speaker.isPlaying ? "stop.fill" : "speaker.wave.2.fill")
                         .font(.title3)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.circle)
-                .accessibilityLabel("英文を読み上げる")
+                .accessibilityLabel(speaker.isPlaying ? "読み上げを停止する" : "英文を読み上げる")
             }
         }
         .padding(.top, 8)
