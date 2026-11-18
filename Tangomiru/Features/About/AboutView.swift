@@ -10,7 +10,7 @@ struct AboutView: View {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Built with PLaMo").font(.headline)
-                    Text("「1文ずつ学ぶ」の和訳は、株式会社Preferred Networksの翻訳モデル PLaMo 3 Translate を使い、端末内で作っています（和訳モデルのダウンロードが必要です）。")
+                    Text("和訳モデルをダウンロードすると、「1文ずつ学ぶ」の和訳と、新しく追加する英文から抽出した単語の訳に、株式会社Preferred Networksの PLaMo 3 Translate を端末内で使います。")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

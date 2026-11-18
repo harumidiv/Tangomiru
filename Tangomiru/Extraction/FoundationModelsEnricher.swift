@@ -23,6 +23,8 @@ nonisolated struct FoundationModelsEnricher: VocabEnricher {
     static let instructions = """
     あなたは日本人の英語学習者のための英和辞書編集者です。
     与えられた英語の語が例文の中でどの意味で使われているかを判断し、その意味を1つだけ日本語で答えてください。
+    各見出し語の「例文」の番号を参照し、実際の文での語形と前後の語を見てください。提示した訳は候補の1つです。
+    「PLaMoの訳」と書かれた語はその訳を正解として使い、それに合う誤答を作ってください。
     訳には括弧や補足説明を付けず、複数の訳を並べないでください。
     入力された別々の語に同じ訳を付けないでください（例: return と dividend を両方「配当」にしない）。
     4択クイズ用に、正解と同じ品詞で、意味がはっきり異なる日本語の誤答を3つ作ってください。
@@ -45,9 +47,14 @@ nonisolated struct FoundationModelsEnricher: VocabEnricher {
 
     static func prompt(inputs: [EnrichmentInput], sentences: [String]) -> String {
         var lines = ["# 例文"]
-        lines += sentences.map { "- \($0)" }
-        lines.append("# 語（見出し語: 辞書の訳）")
-        lines += inputs.map { "- \($0.term): \($0.dictionaryMeaning)" }
+        lines += sentences.enumerated().map { "\($0.offset + 1). \($0.element)" }
+        lines.append("# 語（見出し語: 訳、対応する例文番号）")
+        lines += inputs.map { input in
+            let label = input.keepsSuggestedMeaning ? "PLaMoの訳 " : ""
+            let entry = "- \(input.term): \(label)\(input.suggestedMeaning)"
+            guard let index = sentences.firstIndex(of: input.contextSentence) else { return entry }
+            return "\(entry)（例文\(index + 1)）"
+        }
         return lines.joined(separator: "\n")
     }
 

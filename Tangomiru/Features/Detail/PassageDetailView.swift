@@ -131,7 +131,9 @@ struct PassageDetailView: View {
             SentenceStudyView(passage: passage)
         }
         .fullScreenCover(isPresented: $isQuizPresented) {
-            QuizView(passage: passage, length: quizLength.wrappedValue, scope: effectiveScope(passage.stats))
+            QuizView(passage: passage, length: quizLength.wrappedValue, scope: effectiveScope(passage.stats)) {
+                isQuizPresented = false
+            }
         }
     }
 }

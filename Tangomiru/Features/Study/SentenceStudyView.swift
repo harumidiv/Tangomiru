@@ -9,7 +9,7 @@ struct SentenceStudyView: View {
     private let highlights: [[ReadingHighlight]]
     private let itemsByID: [UUID: VocabItem]
 
-    /// 保存済みの解説はそのまま使い、初めて開いた文だけ作って保存する
+    /// 保存済みの日本語解説を使い、必要な文の解説を作って保存する
     init(passage: Passage) {
         self.init(
             model: SentenceStudyModel(

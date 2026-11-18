@@ -5,6 +5,7 @@ struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Passage.createdAt, order: .reverse) private var passages: [Passage]
     @Environment(AppServices.self) private var services
+    @State private var editMode: EditMode = .inactive
     @State private var isAddingPassage = false
     @State private var isBrowsingSources = false
     @State private var isShowingStore = false
@@ -36,7 +37,10 @@ struct LibraryView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("このアプリについて", systemImage: "info.circle") { isShowingAbout = true }
+                    Button("このアプリについて", systemImage: "info.circle") {
+                        editMode = .inactive
+                        isShowingAbout = true
+                    }
                 }
                 if !passages.isEmpty {
                     ToolbarItem(placement: .topBarLeading) {
@@ -44,13 +48,22 @@ struct LibraryView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("広告なしプラン", systemImage: "crown") { isShowingStore = true }
+                    Button("広告なしプラン", systemImage: "crown") {
+                        editMode = .inactive
+                        isShowingStore = true
+                    }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("英文を探す", systemImage: "globe") { isBrowsingSources = true }
+                    Button("英文を探す", systemImage: "globe") {
+                        editMode = .inactive
+                        isBrowsingSources = true
+                    }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("英文を追加", systemImage: "plus") { isAddingPassage = true }
+                    Button("英文を追加", systemImage: "plus") {
+                        editMode = .inactive
+                        isAddingPassage = true
+                    }
                 }
             }
             .sheet(isPresented: $isAddingPassage) {
@@ -69,6 +82,7 @@ struct LibraryView: View {
                 if services.status.isReady { services.migrateMeanings(of: passages) }
             }
         }
+        .environment(\.editMode, $editMode)
     }
 }
 

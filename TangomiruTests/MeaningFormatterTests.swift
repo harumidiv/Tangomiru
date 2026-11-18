@@ -25,6 +25,7 @@ struct MeaningFormatterTests {
         #expect(MeaningFormatter.single("（古）…を変える；変化させる") == "変える")
         #expect(MeaningFormatter.single("至る所にある（偏在する）") == "至る所にある")
         #expect(MeaningFormatter.single("研究者、調査員") == "研究者")
+        #expect(MeaningFormatter.single("[『弁護』]『依頼人』,訴訟依頼人") == "依頼人")
     }
 
     @Test func prefersEmphasizedMeaning() {

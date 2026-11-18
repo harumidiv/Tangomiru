@@ -1,7 +1,8 @@
 nonisolated struct EnrichmentInput: Equatable, Sendable {
     let term: String
     let contextSentence: String
-    let dictionaryMeaning: String
+    let suggestedMeaning: String
+    var keepsSuggestedMeaning = false
 }
 
 nonisolated struct EnrichedEntry: Equatable, Sendable {
