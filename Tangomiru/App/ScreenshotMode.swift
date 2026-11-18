@@ -36,7 +36,7 @@ struct ScreenshotRootView: View {
                 )
             }
         case .quiz:
-            QuizView(passage: samples.main, length: .ten)
+            QuizView(passage: samples.main, length: .ten, onClose: {})
         case .detail:
             NavigationStack { PassageDetailView(passage: samples.main) }
         case .reading:

@@ -3,7 +3,7 @@ import Observation
 import os
 
 /// 1文ずつ学ぶ画面の進行。英文を表示し、「和訳と解説を見る」で和訳と解説を見せる。
-/// 保存済みの解説はそのまま使い、無い文だけ作って onAnalyzed で保存に回す。
+/// 保存済みの日本語解説を使い、必要な文だけ作って onAnalyzed で保存に回す。
 /// 表示中の文と次の文の解説を先に作っておき、待ち時間を減らす。
 /// 解説を作れない端末では和訳だけを見せ、和訳だけの結果は保存しない（解説を作れるようになったら作り直すため）
 @Observable
@@ -34,7 +34,11 @@ final class SentenceStudyModel {
         self.analyzer = analyzer
         self.onAnalyzed = onAnalyzed
         for (index, sentence) in sentences.enumerated() {
-            if let analysis = saved[sentence] { states[index] = .loaded(analysis) }
+            guard let savedAnalysis = saved[sentence],
+                  var analysis = SentenceAnalysisValidator.validated(savedAnalysis, expectsExplanation: analyzer.canExplain),
+                  !analysis.isExplanationFailed || !analyzer.canExplain else { continue }
+            analysis.isExplanationFailed = false
+            states[index] = .loaded(analysis)
         }
     }
 
@@ -93,7 +97,7 @@ final class SentenceStudyModel {
         tasks[index] = Task { [weak self] in
             var analysis: SentenceAnalysis?
             do {
-                analysis = SentenceAnalysisValidator.validated(try await analyzer.analyze(sentence))
+                analysis = SentenceAnalysisValidator.validated(try await analyzer.analyze(sentence), expectsExplanation: shouldSave)
                 if analysis == nil { SentenceStudyLog.logger.error("和訳が空でした") }
             } catch {
                 SentenceStudyLog.logger.error("和訳と解説を作れませんでした: \(String(reflecting: error), privacy: .public)")

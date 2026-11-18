@@ -3,10 +3,10 @@ import UIKit
 
 struct QuizView: View {
     @Environment(AppServices.self) private var services
-    @Environment(\.dismiss) private var dismiss
     let passage: Passage
     let length: QuizLength
     var scope: QuizScope = .auto
+    let onClose: () -> Void
     @State private var session: QuizSession?
     @State private var feedback: AnswerFeedback?
     @State private var selectedChoice: String?
@@ -30,7 +30,7 @@ struct QuizView: View {
                             .task(id: "\(round)-\(session.position)") { await runCountdown() }
                             .task(id: feedback) { await advanceAfterReveal() }
                     } else {
-                        QuizResultView(session: session, onReview: startReview) { dismiss() }
+                        QuizResultView(session: session, onReview: startReview, onClose: onClose)
                     }
                 } else {
                     ProgressView()
@@ -91,7 +91,7 @@ struct QuizView: View {
         HStack(spacing: 16) {
             Button {
                 commit()
-                dismiss()
+                onClose()
             } label: {
                 Image(systemName: "xmark")
                     .font(.title3.weight(.semibold))

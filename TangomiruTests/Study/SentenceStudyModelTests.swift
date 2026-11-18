@@ -5,7 +5,7 @@ struct SentenceStudyModelTests {
     static let sentences = ["First one.", "Second one.", "Third one."]
 
     private static func analysis(for sentence: String) -> SentenceAnalysis {
-        SentenceAnalysis(translation: "\(sentence)の訳", explanation: "\(sentence)の説明")
+        SentenceAnalysis(translation: "\(sentence)の訳", explanation: "この文は過去の出来事を表します。")
     }
 
     private func model(recorder: CallRecorder = CallRecorder()) -> SentenceStudyModel {
@@ -110,6 +110,34 @@ struct SentenceStudyModelTests {
         model.start()
         await settle(model)
         #expect(reported.calls == [["Second one.", "Second one.の訳"]])
+    }
+
+    @Test func regeneratesSavedEnglishExplanation() async {
+        let sentence = "She left early."
+        let old = SentenceAnalysis(translation: "彼女は早く出た。", explanation: "This sentence is in the past tense.")
+        let replacement = Self.analysis(for: sentence)
+        let reported = CallRecorder()
+        let model = SentenceStudyModel(
+            sentences: [sentence], saved: [sentence: old],
+            analyzer: FakeSentenceAnalyzer { _ in replacement },
+            onAnalyzed: { _, analysis in reported.record([analysis.explanation]) }
+        )
+        model.start()
+        await model.pendingTask(at: 0)?.value
+        #expect(model.currentAnalysis == replacement)
+        #expect(reported.calls == [[replacement.explanation]])
+    }
+
+    @Test func keepsSavedTranslationWhenExplanationCannotBeRegenerated() {
+        let sentence = "She left early."
+        let old = SentenceAnalysis(translation: "彼女は早く出た。", explanation: "This sentence is in the past tense.")
+        let model = SentenceStudyModel(
+            sentences: [sentence], saved: [sentence: old],
+            analyzer: FakeSentenceAnalyzer(canExplain: false) { _ in throw FakeError() }
+        )
+        model.start()
+        #expect(model.currentAnalysis == SentenceAnalysis(translation: "彼女は早く出た。", explanation: ""))
+        #expect(model.pendingTask(at: 0) == nil)
     }
 
     @Test func doesNotSaveTranslationOnlyResults() async {

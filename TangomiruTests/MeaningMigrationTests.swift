@@ -61,6 +61,25 @@ struct MeaningMigrationTests {
         #expect(run.meaning == "走る")
     }
 
+    @Test func correctsKnownSavedTranslationsAndPreservesOtherMeaningsAndScores() throws {
+        let context = try makeContext()
+        let passage = Passage(title: "t", body: "Clients trust our global network.", usedAI: false)
+        context.insert(passage)
+        let clients = item("Clients", meaning: "弁護", distractors: ["顧客", "店舗"], source: .dictionary, at: 0, length: 7)
+        let global = item("global", meaning: "球の", source: .dictionary, at: 18, length: 6)
+        let other = item("global", meaning: "全体的な", source: .dictionary, at: 18, length: 6)
+        clients.score = 2
+        passage.items = [clients, global, other]
+
+        let dictionary = try EJDictionary.loadBundled()
+        MeaningMigration.migrate(passage, tokenizer: Tokenizer(), dictionary: dictionary)
+        #expect(clients.meaning == "顧客")
+        #expect(clients.distractors == ["店舗"])
+        #expect(clients.score == 2)
+        #expect(global.meaning == "世界的な")
+        #expect(other.meaning == "全体的な")
+    }
+
     @Test func detectsOldFormat() {
         #expect(MeaningMigration.needsMigration("走る,駆ける / 急ぐ"))
         #expect(MeaningMigration.needsMigration("〈人が〉急ぐ"))

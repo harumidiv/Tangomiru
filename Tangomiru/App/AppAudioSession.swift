@@ -11,16 +11,25 @@ nonisolated enum AppAudioSession {
     private static let queue = DispatchQueue(label: "Tangomiru.audio-session", qos: .userInitiated)
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Tangomiru", category: "AudioSession")
 
-    /// 起動時と、音を鳴らすものを作るたびに呼ぶ（割り込みなどで無効になっていても有効にし直すため）
-    static func configure() {
+    /// 起動時や再生前に呼ぶ。割り込みなどで無効になっていても有効にし直す。
+    static func configure(completion: @escaping @Sendable () -> Void = {}) {
         queue.async {
+            defer { completion() }
             let session = AVAudioSession.sharedInstance()
             do {
-                try session.setCategory(category, mode: .default, options: options)
+                if session.category != category || session.mode != .default || session.categoryOptions != options {
+                    try session.setCategory(category, mode: .default, options: options)
+                }
                 try session.setActive(true)
             } catch {
                 logger.error("音声セッションを設定できませんでした: \(String(reflecting: error), privacy: .public)")
             }
+        }
+    }
+
+    static func prepareForPlayback() async {
+        await withCheckedContinuation { continuation in
+            configure { continuation.resume() }
         }
     }
 }

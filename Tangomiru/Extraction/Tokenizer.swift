@@ -16,6 +16,7 @@ nonisolated struct Token: Equatable, Sendable {
 nonisolated struct TokenizedText: Equatable, Sendable {
     let tokens: [Token]
     let sentences: [String]
+    var sentenceSpans: [TextSpan] = []
 }
 
 nonisolated struct Tokenizer: Sendable {
@@ -59,7 +60,11 @@ nonisolated struct Tokenizer: Sendable {
             previousEnd = range.upperBound
             return true
         }
-        return TokenizedText(tokens: tokens, sentences: sentences)
+        let sentenceSpans = sentenceRanges.map { range in
+            let nsRange = NSRange(range, in: text)
+            return TextSpan(location: nsRange.location, length: nsRange.length)
+        }
+        return TokenizedText(tokens: tokens, sentences: sentences, sentenceSpans: sentenceSpans)
     }
 
     private static func partOfSpeech(for tag: NLTag?) -> PartOfSpeech {

@@ -21,9 +21,9 @@ struct ExtractionReviewView: View {
     var body: some View {
         List {
             if !result.items.isEmpty {
-                if !result.usedAI {
+                if result.usedPlamo || !result.usedAI {
                     Section {
-                        Label("辞書モードで抽出しました", systemImage: "book")
+                        Label(result.usedPlamo ? "単語の和訳にPLaMoを使用しました" : "辞書モードで抽出しました", systemImage: "book")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }

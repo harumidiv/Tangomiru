@@ -5,11 +5,12 @@ import UIKit
 struct SentenceStudyView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: SentenceStudyModel
+    @State private var speaker = WordSpeaker()
     /// 文ごとの単語ハイライト（位置はその文の先頭が 0）。読解モードと同じく、タップで意味や翻訳を出す
     private let highlights: [[ReadingHighlight]]
     private let itemsByID: [UUID: VocabItem]
 
-    /// 保存済みの解説はそのまま使い、初めて開いた文だけ作って保存する
+    /// 保存済みの日本語解説を使い、必要な文の解説を作って保存する
     init(passage: Passage) {
         self.init(
             model: SentenceStudyModel(
@@ -53,7 +54,13 @@ struct SentenceStudyView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        sentenceCard
+                        VStack(alignment: .leading, spacing: 6) {
+                            sentenceCard
+                            Text("※ 単語をタップすると、意味を確認できます")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .padding(.leading, 12)
+                        }
                         if model.isRevealed { explanation }
                     }
                     .padding(.bottom, 16)
@@ -66,7 +73,11 @@ struct SentenceStudyView: View {
         .padding(.bottom, 8)
         .background(QuizPalette.background.ignoresSafeArea())
         .task { model.start() }
-        .onDisappear { model.cancelAll() }
+        .onChange(of: model.index) { _, _ in speaker.stop() }
+        .onDisappear {
+            speaker.stop()
+            model.cancelAll()
+        }
     }
 
     private var header: some View {
@@ -88,6 +99,22 @@ struct SentenceStudyView: View {
             Text("\(min(model.index + 1, model.sentences.count)) / \(model.sentences.count)")
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.secondary)
+            if let sentence = model.currentSentence {
+                Button {
+                    if speaker.isPlaying {
+                        speaker.stop()
+                    } else {
+                        speaker.speak(sentence)
+                    }
+                } label: {
+                    Image(systemName: speaker.isPlaying ? "stop.fill" : "speaker.wave.2.fill")
+                        .font(.title3)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .accessibilityLabel(speaker.isPlaying ? "読み上げを停止する" : "英文を読み上げる")
+            }
         }
         .padding(.top, 8)
     }

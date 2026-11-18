@@ -57,11 +57,12 @@ final class AppServices {
         let excluded = BasicWords.excludedWords(basic: basicWords, includeBasicWords: includeBasicWords)
         return ExtractionPipeline(
             extractor: DictionaryExtractor(dictionary: dictionary, basicWords: excluded),
-            enricher: FoundationModelsEnricher()
+            enricher: FoundationModelsEnricher(),
+            translator: plamoModel.isReady ? PlamoTranslator.shared : nil
         )
     }
 
-    /// 以前の形式で保存された意味を1つの意味に作り直す（辞書の読み込み後に呼ぶ）
+    /// 保存済みの旧形式の訳と修正済みの辞書訳を更新する（辞書の読み込み後に呼ぶ）
     func migrateMeanings(of passages: [Passage]) {
         guard let dictionary else { return }
         let tokenizer = Tokenizer()

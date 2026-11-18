@@ -37,6 +37,57 @@ struct ExtractionPipelineTests {
         #expect(!result.usedAI)
     }
 
+    @Test func usesPlamoForWordsInContextWithoutAppleIntelligence() async {
+        let dictionary = FakeDictionary(entries: ["client": "顧客", "global": "世界的な"])
+        let calls = CallRecorder()
+        let translator = FakeSentenceTranslator { sentence in
+            calls.record([sentence])
+            return "当社の<v2>グローバル</v2>ネットワークを<v1>取引先</v1>が信頼しています。"
+        }
+        let pipeline = ExtractionPipeline(
+            extractor: DictionaryExtractor(dictionary: dictionary, basicWords: []), enricher: nil, translator: translator
+        )
+
+        let result = await pipeline.run("Clients trust our global network.")
+
+        #expect(calls.calls == [["<v1>Clients</v1> trust our <v2>global</v2> network."]])
+        #expect(result.items.map(\.meaning) == ["取引先", "グローバル"])
+        #expect(result.usedAI && result.usedPlamo)
+    }
+
+    @Test func preservesPlamoMeaningsAndUsesAppleIntelligenceForMissingOnes() async {
+        let dictionary = FakeDictionary(entries: ["client": "顧客", "global": "世界的な"])
+        let translator = FakeSentenceTranslator { _ in "<v1>クライアント</v1>は<v2>global</v2>ネットワークを信頼しています。" }
+        let enricher = FakeEnricher { inputs, _ in
+            #expect(inputs.map(\.keepsSuggestedMeaning) == [true, false])
+            return EnrichmentOutput(words: [
+                EnrichedEntry(term: "client", meaning: "依頼人", distractors: ["クライアント", "販売員"]),
+                EnrichedEntry(term: "global", meaning: "地球規模の", distractors: []),
+            ], idioms: [])
+        }
+        let pipeline = ExtractionPipeline(
+            extractor: DictionaryExtractor(dictionary: dictionary, basicWords: []), enricher: enricher, translator: translator
+        )
+
+        let result = await pipeline.run("Clients trust our global network.")
+
+        #expect(result.items.map(\.meaning) == ["クライアント", "地球規模の"])
+        #expect(result.items.first?.distractors == ["販売員"])
+    }
+
+    @Test func failedPlamoKeepsDictionaryMeanings() async {
+        let pipeline = ExtractionPipeline(
+            extractor: DictionaryExtractor(dictionary: dictionary, basicWords: []),
+            enricher: nil,
+            translator: FakeSentenceTranslator { _ in throw FakeError() }
+        )
+
+        let result = await pipeline.run(Self.body)
+
+        #expect(!result.usedAI && !result.usedPlamo)
+        #expect(result.items.first?.meaning == "abyssの辞書訳")
+    }
+
     @Test func appliesAIMeaningsAndDistractors() async {
         let result = await pipeline(FakeEnricher { inputs, _ in Self.aiOutput(for: inputs) }).run(Self.body)
         #expect(result.usedAI)

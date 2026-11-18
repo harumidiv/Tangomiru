@@ -32,6 +32,16 @@ struct BundledExtractionTests {
         #expect(terms.isDisjoint(with: ["wo", "ca", "oh", "an", "my", "her", "hello", "ok", "okay", "pm"]), "\(terms)")
     }
 
+    @Test func selectsCommonDictionaryMeaningsForClientsAndGlobal() async throws {
+        let pipeline = ExtractionPipeline(
+            extractor: DictionaryExtractor(dictionary: try EJDictionary.loadBundled(), basicWords: []),
+            enricher: nil
+        )
+        let result = await pipeline.run("Clients trust our global network.")
+        #expect(result.items.first { $0.term == "client" || $0.term == "clients" }?.meaning == "顧客")
+        #expect(result.items.first { $0.term == "global" }?.meaning == "世界的な")
+    }
+
     @Test func includesBasicWordsWhenToggledButStillSkipsFunctionWords() async throws {
         let excluded = BasicWords.excludedWords(basic: try BasicWords.loadBundled(), includeBasicWords: true)
         let pipeline = ExtractionPipeline(

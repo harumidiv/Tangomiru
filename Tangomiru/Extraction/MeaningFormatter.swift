@@ -7,9 +7,9 @@ nonisolated enum PartOfSpeech: String, Hashable, Sendable {
     case other
 }
 
-/// EJDict の訳（" / " 区切り、『』強調、《》注記、〈〉(…) 補足付き）から、表示用の意味を1つだけ取り出す
+/// EJDict の訳（" / " 区切り、『』強調、《》注記、〈〉(…)[…] 補足付き）から、表示用の意味を1つだけ取り出す
 nonisolated enum MeaningFormatter {
-    private static let brackets: [Character: Character] = ["《": "》", "〈": "〉", "(": ")", "（": "）"]
+    private static let brackets: [Character: Character] = ["《": "》", "〈": "〉", "(": ")", "（": "）", "[": "]"]
     private static let separators: Set<Character> = [",", ";", "、", "，", "；"]
     private static let particles: Set<Character> = ["を", "に", "が", "と", "で", "へ"]
 

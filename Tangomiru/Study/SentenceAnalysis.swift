@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 import os
 
 /// 1文の和訳と解説（AI が作り、表示前に SentenceAnalysisValidator で検査する）
@@ -31,14 +32,20 @@ extension SentenceAnalyzer {
 }
 
 nonisolated enum SentenceAnalysisValidator {
-    /// 和訳が無ければ nil。解説は空でもよい
-    static func validated(_ analysis: SentenceAnalysis) -> SentenceAnalysis? {
+    static func isJapaneseExplanation(_ text: String) -> Bool {
+        NLLanguageRecognizer.dominantLanguage(for: text) == .japanese
+    }
+
+    /// 和訳が無ければ nil。日本語以外の解説は表示用の結果から除く。
+    static func validated(_ analysis: SentenceAnalysis, expectsExplanation: Bool = false) -> SentenceAnalysis? {
         let translation = analysis.translation.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !translation.isEmpty else { return nil }
+        let explanation = analysis.explanation.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isJapanese = isJapaneseExplanation(explanation)
         return SentenceAnalysis(
             translation: translation,
-            explanation: analysis.explanation.trimmingCharacters(in: .whitespacesAndNewlines),
-            isExplanationFailed: analysis.isExplanationFailed
+            explanation: isJapanese ? explanation : "",
+            isExplanationFailed: analysis.isExplanationFailed || (!isJapanese && (expectsExplanation || !explanation.isEmpty))
         )
     }
 }
