@@ -4,7 +4,7 @@ import Testing
 struct ComprehensionBuilderTests {
     static let passage = (1...7).map { "Sentence number \($0) is here." }.joined(separator: " ")
 
-    private static func question(_ tag: String) -> ComprehensionQuestion {
+    nonisolated private static func question(_ tag: String) -> ComprehensionQuestion {
         ComprehensionQuestion(question: tag, choices: ["正", "誤1", "誤2", "誤3"], answerIndex: 0, evidence: nil)
     }
 

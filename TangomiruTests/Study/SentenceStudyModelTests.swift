@@ -4,7 +4,7 @@ import Testing
 struct SentenceStudyModelTests {
     static let sentences = ["First one.", "Second one.", "Third one."]
 
-    private static func analysis(for sentence: String) -> SentenceAnalysis {
+    nonisolated private static func analysis(for sentence: String) -> SentenceAnalysis {
         SentenceAnalysis(translation: "\(sentence)の訳", explanation: "この文は過去の出来事を表します。")
     }
 

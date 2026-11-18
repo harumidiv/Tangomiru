@@ -46,7 +46,7 @@ struct AboutView: View {
 }
 
 /// アプリに同梱しているライセンス本文（Resources/Licenses）
-struct BundledLicense: Identifiable, Hashable {
+nonisolated struct BundledLicense: Identifiable, Hashable {
     let title: String
     let fileName: String
     var id: String { fileName }

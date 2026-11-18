@@ -8,7 +8,7 @@ nonisolated protocol WordDictionary: Sendable {
 }
 
 extension WordDictionary {
-    func meaning(for key: String) -> String? {
+    nonisolated func meaning(for key: String) -> String? {
         meaning(for: key, partOfSpeech: nil)
     }
 }

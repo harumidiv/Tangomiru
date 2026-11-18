@@ -58,7 +58,7 @@ final class PlamoModelStore {
         state = FileManager.default.fileExists(atPath: fileURL.path) ? .ready : .notDownloaded
 
         self.downloader.setEventHandler { [weak self] event in
-            Task { @MainActor in self?.handle(event) }
+            Task { @MainActor [weak self] in self?.handle(event) }
         }
         restore()
     }

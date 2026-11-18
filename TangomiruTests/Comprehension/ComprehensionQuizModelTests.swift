@@ -5,7 +5,7 @@ struct ComprehensionQuizModelTests {
     /// 7文 → 4問。maxChunkLength を小さくして2チャンクに分ける
     static let passage = (1...7).map { "Sentence number \($0) is here." }.joined(separator: " ")
 
-    private static func questions(count: Int, tag: String) -> [ComprehensionQuestion] {
+    nonisolated private static func questions(count: Int, tag: String) -> [ComprehensionQuestion] {
         (0..<count).map {
             ComprehensionQuestion(question: "\(tag)-\($0)", choices: ["正", "誤1", "誤2", "誤3"], answerIndex: 0, evidence: nil)
         }
@@ -105,7 +105,7 @@ struct ComprehensionQuizModelTests {
         #expect(model.questions.count == 4)
     }
 
-    static let gistQuestion = ComprehensionQuestion(
+    nonisolated static let gistQuestion = ComprehensionQuestion(
         question: "この文章は主に何について書かれていますか？", choices: ["文", "天気", "料理", "旅行"], answerIndex: 0, evidence: nil
     )
 
