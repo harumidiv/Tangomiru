@@ -1,6 +1,8 @@
 nonisolated enum ItemSource: String, Codable, Hashable, Sendable {
     case dictionary
     case ai
+    /// 読解中にタップして自分で単語帳に追加した語
+    case manual
 }
 
 /// 抽出結果（保存前の値型）

@@ -53,6 +53,37 @@ extension Passage {
         storedSentenceAnalyses.append(StoredSentenceAnalysis(sentence: sentence, analysis: analysis))
     }
 
+    /// term（大文字小文字は区別しない）に一致する語
+    func item(matching term: String) -> VocabItem? {
+        let key = term.lowercased()
+        return items.first { $0.term.lowercased() == key }
+    }
+
+    /// タップした語を単語帳に加える。同じ語がオフになっていればオンに戻す
+    @discardableResult
+    func addWord(_ word: String, meaning: String) -> VocabItem {
+        if let existing = item(matching: word) {
+            existing.isEnabled = true
+            return existing
+        }
+        let term = word.lowercased()
+        let occurrences = TextSearch.occurrences(of: term, in: body)
+        let sentence = occurrences.first.flatMap { span in
+            SentenceSplitter.slices(in: body).first { $0.span.location <= span.location && span.end <= $0.span.end }?.text
+        } ?? ""
+        let formatted = MeaningFormatter.single(meaning)
+        let item = VocabItem(extracted: ExtractedItem(
+            term: term,
+            meaning: formatted.isEmpty ? meaning : formatted,
+            distractors: [],
+            contextSentence: sentence,
+            occurrences: occurrences,
+            source: .manual
+        ))
+        items.append(item)
+        return item
+    }
+
     func applyQuizResult(_ changes: [ScoreChange], at date: Date = .now) {
         let itemsByID = Dictionary(items.map { ($0.uuid, $0) }, uniquingKeysWith: { first, _ in first })
         for change in changes {

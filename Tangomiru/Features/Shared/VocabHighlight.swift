@@ -42,14 +42,16 @@ enum VocabHighlight {
 
 extension View {
     /// VocabHighlight.attributed で付けたリンクのタップを受け取る。
-    /// 保存済みの訳か標準の翻訳（Translation）で得た訳をシートに表示する
-    func vocabTapActions(itemsByID: [UUID: VocabItem]) -> some View {
-        modifier(VocabTapActions(itemsByID: itemsByID))
+    /// 保存済みの訳か標準の翻訳（Translation）で得た訳をシートに表示する。
+    /// passage を渡すと、シートからその英文の単語帳に語を追加できる
+    func vocabTapActions(itemsByID: [UUID: VocabItem], addingTo passage: Passage? = nil) -> some View {
+        modifier(VocabTapActions(itemsByID: itemsByID, passage: passage))
     }
 }
 
 private struct VocabTapActions: ViewModifier {
     let itemsByID: [UUID: VocabItem]
+    let passage: Passage?
     @State private var lookup: WordLookup?
 
     func body(content: Content) -> some View {
@@ -60,13 +62,15 @@ private struct VocabTapActions: ViewModifier {
                 if let id = ReadingLink.itemID(from: url), let item = itemsByID[id] {
                     lookup = WordLookup(text: item.term, meaning: item.meaning)
                 } else if let word = ReadingLink.word(from: url) {
-                    lookup = WordLookup(text: word, meaning: nil)
+                    // ハイライトしていない語でも、オフにした語や習得済みの語なら保存済みの訳を使う
+                    let saved = passage?.item(matching: word)
+                    lookup = WordLookup(text: word, meaning: saved?.meaning)
                 }
                 return .handled
             })
             .sheet(item: $lookup) { word in
-                WordTranslationSheet(word: word.text, meaning: word.meaning)
-                    .presentationDetents([.height(200)])
+                WordTranslationSheet(word: word.text, meaning: word.meaning, passage: passage)
+                    .presentationDetents([.height(passage == nil ? 200 : 260)])
             }
     }
 }
@@ -87,12 +91,14 @@ private struct WordTranslationSheet: View {
     }
 
     let word: String
+    let passage: Passage?
     @State private var result: Result
     @State private var speaker = WordSpeaker()
     private let configuration: TranslationSession.Configuration?
 
-    init(word: String, meaning: String?) {
+    init(word: String, meaning: String?, passage: Passage?) {
         self.word = word
+        self.passage = passage
         if let meaning {
             _result = State(initialValue: .translated(meaning))
             configuration = nil
@@ -130,6 +136,7 @@ private struct WordTranslationSheet: View {
                 Text("翻訳できませんでした").font(.body).foregroundStyle(.secondary)
             }
             Spacer()
+            if passage != nil { addButton }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -141,5 +148,37 @@ private struct WordTranslationSheet: View {
             }
         }
         .onDisappear { speaker.stop() }
+    }
+
+    /// 単語帳に入っていて（オンになっていて）クイズに出る語か
+    private var isInWordList: Bool {
+        passage?.item(matching: word)?.isEnabled == true
+    }
+
+    @ViewBuilder
+    private var addButton: some View {
+        if isInWordList {
+            Label("単語帳に追加済み", systemImage: "checkmark.circle.fill")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 44)
+        } else {
+            Button {
+                guard case .translated(let meaning) = result else { return }
+                passage?.addWord(word, meaning: meaning)
+            } label: {
+                Label("単語帳に追加", systemImage: "plus.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(.orange)
+            .disabled(!isTranslated)
+        }
+    }
+
+    private var isTranslated: Bool {
+        if case .translated = result { true } else { false }
     }
 }
