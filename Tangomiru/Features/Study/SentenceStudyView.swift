@@ -6,9 +6,10 @@ struct SentenceStudyView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: SentenceStudyModel
     @State private var speaker = WordSpeaker()
-    /// 文ごとの単語ハイライト（位置はその文の先頭が 0）。読解モードと同じく、タップで意味や翻訳を出す
-    private let highlights: [[ReadingHighlight]]
-    private let itemsByID: [UUID: VocabItem]
+    /// 単語をハイライトしてタップで意味や翻訳を出し、単語帳に追加できるようにする英文（プレビューでは nil）
+    private let passage: Passage?
+    /// 本文中の各文の位置。ハイライトの位置をその文の先頭が 0 になるよう変換するのに使う
+    private let sentenceSpans: [TextSpan]
 
     /// 保存済みの日本語解説を使い、必要な文の解説を作って保存する
     init(passage: Passage) {
@@ -26,15 +27,17 @@ struct SentenceStudyView: View {
     /// プレビューなどで解説の作り方を差し替えるため。wordsFrom を渡すと、その単語をハイライトしてタップで意味を出す
     init(model: SentenceStudyModel, wordsFrom passage: Passage? = nil) {
         _model = State(initialValue: model)
-        if let passage {
-            let highlights = passage.readingHighlights
-            self.highlights = SentenceSplitter.slices(in: passage.body).map { ReadingSegmenter.highlights(highlights, within: $0.span) }
-            itemsByID = passage.itemsByID
-        } else {
-            highlights = []
-            itemsByID = [:]
-        }
+        self.passage = passage
+        sentenceSpans = passage.map { SentenceSplitter.slices(in: $0.body).map(\.span) } ?? []
     }
+
+    /// 今の文のハイライト。単語帳に語を追加したらすぐ反映されるよう、毎回 passage から作る
+    private var currentHighlights: [ReadingHighlight] {
+        guard let passage, sentenceSpans.indices.contains(model.index) else { return [] }
+        return ReadingSegmenter.highlights(passage.readingHighlights, within: sentenceSpans[model.index])
+    }
+
+    private var itemsByID: [UUID: VocabItem] { passage?.itemsByID ?? [:] }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -120,10 +123,9 @@ struct SentenceStudyView: View {
     }
 
     private var sentenceCard: some View {
-        let sentenceHighlights = highlights.indices.contains(model.index) ? highlights[model.index] : []
-        return Text(VocabHighlight.attributed(model.currentSentence ?? "", highlights: sentenceHighlights, itemsByID: itemsByID))
+        Text(VocabHighlight.attributed(model.currentSentence ?? "", highlights: currentHighlights, itemsByID: itemsByID))
             .font(.title2.weight(.semibold))
-            .vocabTapActions(itemsByID: itemsByID)
+            .vocabTapActions(itemsByID: itemsByID, addingTo: passage)
             .frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
             .padding(24)
             .background(RoundedRectangle(cornerRadius: 20).fill(QuizPalette.surface))

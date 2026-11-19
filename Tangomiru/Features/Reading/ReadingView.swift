@@ -12,7 +12,7 @@ struct ReadingView: View {
                 Text(VocabHighlight.attributed(passage.body, highlights: passage.readingHighlights, itemsByID: itemsByID))
                     .font(.body)
                     .lineSpacing(6)
-                    .vocabTapActions(itemsByID: itemsByID)
+                    .vocabTapActions(itemsByID: itemsByID, addingTo: passage)
                 comprehensionQuizEntry
             }
             .padding()

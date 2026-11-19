@@ -76,4 +76,32 @@ struct PassageModelTests {
         ]
         #expect(passage.sortedItems.map(\.term) == ["first", "later"])
     }
+
+    @Test func addWordCreatesManualItemWithOccurrencesAndSentence() throws {
+        let context = try makeContext()
+        let passage = Passage(title: "t", body: "I like cats. Cats sleep a lot.", usedAI: false)
+        context.insert(passage)
+        let item = passage.addWord("Cats", meaning: "猫")
+        #expect(passage.items.count == 1)
+        #expect(item.term == "cats")
+        #expect(item.meaning == "猫")
+        #expect(item.source == .manual)
+        #expect(item.isEnabled)
+        #expect(item.occurrences == [TextSpan(location: 7, length: 4), TextSpan(location: 13, length: 4)])
+        #expect(item.contextSentence == "I like cats.")
+        #expect(passage.readingHighlights.count == 2)
+    }
+
+    @Test func addWordReenablesExistingItemInsteadOfDuplicating() throws {
+        let context = try makeContext()
+        let passage = Passage(title: "t", body: "abc", usedAI: false)
+        context.insert(passage)
+        let existing = VocabItem(extracted: extracted("abc", at: 0, length: 3), isEnabled: false)
+        passage.items = [existing]
+        let item = passage.addWord("ABC", meaning: "別の訳")
+        #expect(passage.items.count == 1)
+        #expect(item.uuid == existing.uuid)
+        #expect(item.isEnabled)
+        #expect(item.meaning == "abcの意味")
+    }
 }
